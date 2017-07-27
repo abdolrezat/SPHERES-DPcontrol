@@ -11,23 +11,24 @@ addpath(path,'simulator')
     %time variables
     controller.h = 0.005;
     %Optimal Control constants
-    controller.Qx = 1.0;
-    controller.Qv = 1.0;
+    controller.Qx = 6.0;
+    controller.Qv = 10.0;
     controller.Qt = 1.0;
     controller.Qw = 1.0;
-    controller.R =  1.0;
+    controller.R =  0.1;
     % mesh generation
     controller.lim_x = [-50 50]; %in m
     controller.lim_v = [-2.2 2.2]; %in m/s
     controller.lim_t = deg2rad([-71 71]); %in degrees, converts to rad
     controller.lim_w = deg2rad([-50 50]); %in rad/s
     
-    controller.n_mesh_x = 700;
-    controller.n_mesh_v = 700;
+    controller.n_mesh_x = 300;
+    controller.n_mesh_v = 300;
     controller.n_mesh_t = 700;
     controller.n_mesh_w = 700;
 %
-generate_DP_ForceMoment_controller(controller)
+% generate_DP_ForceMoment_controller(controller)
+generate_DP_ForceMoment_controller(controller, '+visualization')
 
 %% Simulate the results
 

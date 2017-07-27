@@ -1,4 +1,4 @@
-function [F_gI, U_Optimal_id] = DP_XV_one_channel_U_Opt(s_x,s_v, ...
+function [F_gI, U_Optimal_id] = DP_XV_one_channel_U_Opt_visualization(s_x,s_v, ...
     v_Fthruster,Qx,Qv,R, h, T_final, Mass)
 
 %calculate and correct number of stages if needed
@@ -15,7 +15,7 @@ n_v = length(s_v);
 
 % initialization
 %calculating next stage states, J input to the next states must be in accordance with the Moment direction
-[x_next,v_next] = next_stage_states_simplified( s_x,s_v,...
+[X_mesh,V_mesh, x_next,v_next] = next_stage_states_simplified( s_x,s_v,...
     v_Fthruster, h ,Mass);
 
 %calculating J fixed
@@ -58,6 +58,20 @@ tic
 for k_s = N_stage-1:-1:1
     %% move U_optimal_id to the terminal checkpoint
     [F_gI.Values, U_Optimal_id] = min( J_current + F_gI(x_next,v_next), [], 3);
+    
+    %% codes for visualization
+    U_star_plotData = v_Fthruster(U_Optimal_id);
+    if(k_s == N_stage-1)
+        figure
+        p = mesh(X_mesh, V_mesh, U_star_plotData);
+        colormap winter
+        axis manual    % not allowing axis limits to change automatically
+    else
+        p.ZData =  U_star_plotData;
+        title(['Stage ',num2str(k_s)]);
+        pause(0.08)
+    end
+    %%
     if ~rem(k_s,50)
         if(excess_memory)
 %             fsum50 = F_gI.Values - fsum50_prev;
@@ -111,19 +125,21 @@ J_current_M = (Qx * x.^2 + Qv * v.^2 +...
     ( R* f.^2)  );
 end
 
-function [x_next,v_next] = next_stage_states_simplified(X, V, f ,h ,Mass)
+function [X1,V1, x_next,v_next] = next_stage_states_simplified(X, V, f ,h ,Mass)
 %store length
 L_x = length(X);
 L_v = length(V);
 
 % reshape
-X = reshape(X,[L_x 1]  );
+X = single(reshape(X,[L_x 1]  ));
 V = single(reshape(V,[1 L_v]  ));
 f = reshape(f, [1 1 length(f)]);
 % ODE solve
 x_next =  RK4_x( X, V, h) ;
 v_next =  RK4_v( V, f, h, Mass);
 % repmat each matrix to full size, as required for F inputs
+X1 = repmat(X, [1 L_v]);
+V1 = repmat(V, [L_x 1]);
 x_next = repmat(x_next,[1 1 length(f)]);
 v_next = repmat(v_next,[L_x 1 1]);
 end

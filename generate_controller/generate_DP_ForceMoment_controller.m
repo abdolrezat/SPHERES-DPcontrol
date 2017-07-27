@@ -4,14 +4,18 @@ function generate_DP_ForceMoment_controller(varargin)
 %   Usage: generate_DP_ForceMoment_controller(controller) for customized
 %   generate_DP_ForceMoment_controller(controller,'test') for test
 % 
-
 path_ = strsplit(mfilename('fullpath'),'\\');
 path_ = strjoin(path_(1:end-1),'\');
 
 addpath(path,strcat(path_,'\functions'))
 
-if(nargin == 1)
+if(nargin > 0)
     controller = varargin{1};
+    if (nargin == 2)
+        visualization = 1;
+    else
+        visualization = 0;
+    end
     controller_name = controller.name;
     Tf = controller.Tf;
     Tm = controller.Tm;
@@ -35,7 +39,7 @@ if(nargin == 1)
     n_mesh_w = controller.n_mesh_w;
     
 else
-    controller_name = 'controller_linspace2_70m_70deg_3F';
+    controller_name = 'controller_linspace2_70m_70deg_3F_noname';
     Tf = 120;
     Tm = 20;
     %time variables
@@ -62,26 +66,6 @@ Thruster_dist = 9.65E-2; % (meters)
 Thruster_max_F = 0.13; % (N)
 Thruster_max_M = Thruster_max_F*Thruster_dist;
 
-
-%test environment
-if(nargin > 1)
-    if(varargin{2} == 'test')
-        %logarithmic spacing
-        s_x = mesh_state_log(lim_x, 100, 0.05);
-        s_v = mesh_state_log(lim_v, 100, 2.2);
-        s_t = mesh_state_log(lim_t, 100, rad2deg(0.04));
-        s_w = mesh_state_log(lim_w, 100, 0.35);
-        
-        %linear spacing
-        v_Fthruster = mesh_state(2*[-Thruster_max_F Thruster_max_F], 10);
-        v_Mthruster = mesh_state(2*[-Thruster_max_M Thruster_max_M], 10);
-        controller_name = [varargin{2},'_test'];
-    end
-end
-
-%end of test if
-
-if(nargin == 1)
     %logarithmic spacing
     s_x = mesh_state_log(lim_x, n_mesh_x, 0.06);
     s_v = mesh_state_log(lim_v, n_mesh_v, 2.4);
@@ -90,8 +74,6 @@ if(nargin == 1)
     %linear spacing
     v_Fthruster = mesh_state(2*[-Thruster_max_F Thruster_max_F], 3);
     v_Mthruster = mesh_state(2*[-Thruster_max_M Thruster_max_M], 3);
-end
-
 
 filename = strcat(path_,'\','controller\',controller_name);
 
@@ -101,8 +83,13 @@ filename = strcat(path_,'\','controller\',controller_name);
 % if(exist('controller','dir') ~= 7) mkdir('controller'), end
 % Run
 T_final = Tf;
-[F_gI,F_U_Optimal_id] = DP_XV_one_channel_U_Opt(s_x,s_v, ...
-    v_Fthruster,Qx,Qv,R, h, T_final, Mass);
+if(visualization == 0)
+    [F_gI,F_U_Optimal_id] = DP_XV_one_channel_U_Opt(s_x,s_v, ...
+        v_Fthruster,Qx,Qv,R, h, T_final, Mass);
+else
+    [F_gI,F_U_Optimal_id] = DP_XV_one_channel_U_Opt_visualization(s_x,s_v, ...
+        v_Fthruster,Qx,Qv,R, h, T_final, Mass);
+end
 save(filename,'F_gI', 'F_U_Optimal_id','v_Fthruster','v_Mthruster')
 clear('F_gI', 'F_U_Optimal_id')
 
