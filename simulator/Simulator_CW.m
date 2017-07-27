@@ -48,7 +48,7 @@ classdef Simulator_CW < handle
                 this.J2 = this.InertiaM(5);
                 this.J3 = this.InertiaM(9);
                
-                this.T_final = 40;
+                this.T_final = 60;
                 this.h = 0.005;
             end
             
@@ -377,8 +377,9 @@ classdef Simulator_CW < handle
         end
         
         function set_controller(obj, controller_name)
-            
-            controller = load(strcat('../generate_controller/controller/',controller_name));
+            path_ = strsplit(mfilename('fullpath'),'\\');
+            path_ = strjoin(path_(1:end-1),'\');
+            controller = load(strcat(path_,'\..\generate_controller\controller\',controller_name));
             obj.F_controller = griddedInterpolant(controller.F_gI,...
                 single(controller.v_Fthruster(controller.F_U_Optimal_id)), 'linear','nearest');
             
