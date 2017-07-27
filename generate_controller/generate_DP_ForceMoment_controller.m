@@ -6,11 +6,11 @@ path(path,'functions')
 h = 0.005;
 
 %Optimal Control constants
-Qx = 6.0;
-Qv = 6.0;
-Qt = 0.5;
-Qw = 0.5;
-R =  0.1;
+Qx = 1.0;
+Qv = 1.0;
+Qt = 1.0;
+Qw = 1.0;
+R =  1;
 %SPHERES config values
 J1 = 0.02836 + 0.00016;
 J2 =  0.026817 + 0.00150;
@@ -22,30 +22,33 @@ Thruster_max_F = 0.13; % (N)
 Thruster_max_M = Thruster_max_F*Thruster_dist;
 
 % mesh generation
-lim_x = [-70 70]; %in m
+lim_x = [-20 20]; %in m
 lim_v = [-2.0 2.0]; %in m/s
-lim_t = deg2rad([-70 70]); %in degrees, converts to rad
+lim_t = deg2rad([-50 50]); %in degrees, converts to rad
 lim_w = deg2rad([-50 50]); %in rad/s
 
 %logarithmic spacing
-s_x = mesh_state_log(lim_x, 500, 0.06);
-s_v = mesh_state_log(lim_v, 800, 2.4);
-s_t = mesh_state_log(lim_t, 600, rad2deg(0.06));
-s_w = mesh_state_log(lim_w, 800, rad2deg(0.1));
+s_x = mesh_state_log(lim_x, 1000, 0.06);
+s_v = mesh_state_log(lim_v, 1000, 2.4);
+s_t = mesh_state_log(lim_t, 1000, rad2deg(0.06));
+s_w = mesh_state_log(lim_w, 1000, rad2deg(0.1));
 
 %linear spacing
-v_Fthruster = mesh_state(2*[-Thruster_max_F Thruster_max_F], 1000);
-v_Mthruster = mesh_state(2*[-Thruster_max_M Thruster_max_M], 1000);
+v_Fthruster = mesh_state(2*[-Thruster_max_F Thruster_max_F], 3);
+v_Mthruster = mesh_state([-Thruster_max_M Thruster_max_M], 3);
 
-filename = 'controller/controller_linspace2_70m_70deg';
+path_ = strsplit(mfilename('fullpath'),'\\');
+path_ = strjoin(path_(1:end-1),'\');
+
+filename = strcat(path_,'\','controller\controller_linspace2_20m_20deg_3F');
 
 %test environment
 if(nargin > 0)
     if(varargin{1} == 'test')
         %logarithmic spacing
-        s_x = mesh_state_log(lim_x, 10, 0.05);
+        s_x = mesh_state_log(lim_x, 100, 0.05);
         s_v = mesh_state_log(lim_v, 100, 2.2);
-        s_t = mesh_state_log(lim_t, 10, rad2deg(0.04));
+        s_t = mesh_state_log(lim_t, 100, rad2deg(0.04));
         s_w = mesh_state_log(lim_w, 100, 0.35);
         
         %linear spacing
@@ -58,7 +61,7 @@ end
 
 %% Run Calculations
 %check folder exists
-if(exist('controller','dir') ~= 7) mkdir('controller'), end
+% if(exist('controller','dir') ~= 7) mkdir('controller'), end
 % Run
 T_final = 100;
 [F_gI,F_U_Optimal_id] = DP_XV_one_channel_U_Opt(s_x,s_v, ...
