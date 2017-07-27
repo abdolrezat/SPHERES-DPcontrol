@@ -53,7 +53,7 @@ end
 
 fsum50_prev = 0;
 idsum50_prev = 0;
-tol = 50;
+tol = 10;
 tic
 for k_s = N_stage-1:-1:1
     %% move U_optimal_id to the terminal checkpoint
@@ -69,7 +69,7 @@ for k_s = N_stage-1:-1:1
 %             fsum50_prev = F_gI.Values;
             idsum50_prev = U_Optimal_id;
             
-            if(abs(e2) < tol)
+            if(abs(e2) < tol && k_s < N_stage*2/3)
                 fprintf('sum of errors in the last 50 stages is under tolerance, breaking loop...\n')
                 break
             end
