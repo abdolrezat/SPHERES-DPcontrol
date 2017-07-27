@@ -30,9 +30,25 @@ classdef Simulator_CW < handle
     end
     
     methods
-        function this = Simulator_CW()
-            if nargin < 1
+        function this = Simulator_CW(simopts)
+            if nargin == 0
                 this.current_controller = 'controller_linspace2_20m_20deg_3F';
+                this.T_final = 60;
+                this.h = 0.005;
+                
+                dr0 = [10 12 0];
+                dv0 = [0 0 0];
+                q0 = flip(angle2quat(deg2rad(20),deg2rad(40),deg2rad(0)));
+                
+                w0 = [0 0 0];
+                this.defaultX0 = [dr0 dv0 q0 w0]';
+            else
+                this.current_controller = simopts.current_controller;
+                this.T_final = simopts.T_final;
+                this.h = simopts.h;
+                this.defaultX0 = simopts.defaultX0;
+            end
+            
                 this.Mass = 4.16;
                 inertia(1,1) =  0.02836 + 0.00016;
                 inertia(2,1) =  0.026817 + 0.00150;
@@ -48,9 +64,7 @@ classdef Simulator_CW < handle
                 this.J2 = this.InertiaM(5);
                 this.J3 = this.InertiaM(9);
                
-                this.T_final = 60;
-                this.h = 0.005;
-            end
+            
             
             this.N_stage = this.T_final/this.h;
             
@@ -59,9 +73,6 @@ classdef Simulator_CW < handle
                 this.T_final = this.h*this.N_stage;
                 warning('T_final is not a factor of h (dt), increasing T_final to %.2f\n',this.T_final)
             end
-            
-            q0 = [];
-            this.defaultX0 = [0;0;0;0;0;0;q0;0;0;0]; % [x;v;q;w]
             
             %Thruster Forces
             this.Thruster_max_F = 0.13; % (N)
@@ -224,16 +235,9 @@ classdef Simulator_CW < handle
         
         function get_optimal_path(obj)
             mu = 398600;
-            if nargin < 2
-%                 X0 = obj.defaultX0;
+            if nargin == 1
                 %   Prescribed initial state vector of chaser B in the co-moving frame:
-                dr0 = [10 12 0];
-                dv0 = [0 0 0];
-%                 q0 = [0 0 0 1];
-                q0 = flip(angle2quat(deg2rad(20),deg2rad(40),deg2rad(0)));
-                
-                w0 = [0 0 0];
-                X0 = [dr0 dv0 q0 w0]';
+                X0 = obj.defaultX0;
                 tf  = obj.T_final;
                 N_total_sim = obj.N_stage;
             end
