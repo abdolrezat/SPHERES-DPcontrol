@@ -3,6 +3,7 @@ classdef Simulator_CW < handle
     %   Detailed explanation goes here
     
     properties
+        mode %simulator mode, 'fault' for one thruster inoperative situation
         N % number of stages
         Mass % Mass
         InertiaM % Moment of Inertia Matrix
@@ -42,11 +43,13 @@ classdef Simulator_CW < handle
                 
                 w0 = [0 0 0];
                 this.defaultX0 = [dr0 dv0 q0 w0]';
+                this.mode = 'normal';
             else
                 this.current_controller = simopts.current_controller;
                 this.T_final = simopts.T_final;
                 this.h = simopts.h;
                 this.defaultX0 = simopts.defaultX0;
+                this.mode = simopts.mode;
             end
             
                 this.Mass = 4.16;
@@ -185,54 +188,23 @@ classdef Simulator_CW < handle
                 f6*obj.T_dist +f7*(-obj.T_dist) )/J;
         end
         
-        function [f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11] = get_thruster_on_off_optimal(obj,x,v,t,w,R0,V0,q)
-            % gets the optimal on/off state of thrusters, method run() or
-            % simplified_run() must be run before calling this function,
-            % the inputs x,v are position and velocity of object B
-            % to target A in RSW frame
-            
-            %transform vectors to body frame of reference
-            rotM_RSW2ECI = RSW2ECI(obj, R0, V0);
-            rotM_ECI2body = ECI2body(obj,q);
-            
-            x = rotM_ECI2body*(rotM_RSW2ECI* x');
-            v = rotM_ECI2body*(rotM_RSW2ECI* v');
-            
-            %
-            t_x = t(1); %rotation about x_axis
-            t_y = t(2);
-            t_z = t(3);
-            
-            w_x = w(1); %rotational speed about x_axis
-            w_y = w(2);
-            w_z = w(3);
-            
-            x1 = x(1);
-            x2 = x(2);
-            x3 = x(3);
-            
-            v1 = v(1);
-            v2 = v(2);
-            v3 = v(3);
-            
-            f0 = obj.Opt_F_Thr0(x1,v1, t_y, w_y );
-            f1 = obj.Opt_F_Thr1(x1,v1, t_y, w_y );
-            f6 = obj.Opt_F_Thr6(x1,v1, t_y, w_y );
-            f7 = obj.Opt_F_Thr7(x1,v1, t_y, w_y );
-            
-            f2 = obj.Opt_F_Thr2(x2,v2, t_z, w_z );
-            f3 = obj.Opt_F_Thr3(x2,v2, t_z, w_z );
-            f8 = obj.Opt_F_Thr8(x2,v2, t_z, w_z );
-            f9 = obj.Opt_F_Thr9(x2,v2, t_z, w_z );
-            
-            f4 = obj.Opt_F_Thr4(x3,v3, t_x, w_x );
-            f5 = obj.Opt_F_Thr5(x3,v3, t_x, w_x );
-            f10 = obj.Opt_F_Thr10(x3,v3, t_x, w_x );
-            f11 = obj.Opt_F_Thr11(x3,v3, t_x, w_x );
+        function f = get_thruster_on_off_optimal(obj,M_req, a_Body_req)
+            % gets the optimal on/off state of thrusters by assigning
+            % thruster forces properly to make up accelerations in the Body
+            % frame of reference
+            A = [1,1,0,0,0,0,-1,-1,0,0,0,0;0,0,1,1,0,0,0,0,-1,-1,0,0;...
+                0,0,0,0,1,1,0,0,0,0,-1,-1;0,0,0,0,1,-1,0,0,0,0,-1,1;...
+                1,-1,0,0,0,0,-1,1,0,0,0,0;0,0,1,-1,0,0,0,0,-1,1,0,0]; % A*f = [F;M/Tdist]
+            if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f0) off
+                
+            else % control with all thrusters operational
+                f = A\[a_Body_req*obj.Mass;... %% !THE THRUSTER LIMITS NOT CONSIDERED!
+                    M_req/obj.T_dist];
+            end
             
         end
         
-        
+
         function get_optimal_path(obj)
             mu = 398600;
             if nargin == 1
@@ -249,6 +221,7 @@ classdef Simulator_CW < handle
             
             tspan = 0:obj.h:tf;
             X_ode45 = zeros(N_total_sim, 13);
+            F_Th_Opt = zeros(N_total_sim, 12);
             Force_Moment_log = zeros(N_total_sim, 6);
             X_ode45(1,:) = X0;
             % Calculate the target initial state vector
@@ -268,12 +241,28 @@ classdef Simulator_CW < handle
                     R(1).*V(2)-R(2).*V(1)];
                 H  = (crossRV'*crossRV)^.5 ; %norm(crossRV);
                 
-                % moments (U_M) and directional forces (a_* |x,y,z|) with
+                % required (Optimal) moments (U_M) and directional accelerations (a_* |x,y,z|) with
                 % respect to inertial frame
-                [U_M, a_x, a_y, a_z] = Opt_Force_Moments(obj,R0,V0,X_stage,q_stage);
-                
+                [U_M_req, a_req] = Opt_Force_Moments(obj,X_stage);
+                %rotation matrices
+                rotM_RSW2ECI = RSW2ECI(obj, R0, V0);
+                rotM_ECI2body = ECI2body(obj,q_stage);
+                % required directional accelerations in Body frame of reference
+                a_Body_req = rotM_ECI2body*rotM_RSW2ECI*  a_req;
+                f_thruster = get_thruster_on_off_optimal(obj, U_M_req, a_Body_req);
+                % accelerations from thruster forces1
+                [U_M, a_x, a_y, a_z] = to_Moments_Forces(obj,...
+                    f_thruster, rotM_RSW2ECI, rotM_ECI2body);
+                %
+%                 %% test environment for controller, 
+%                 % enable the block below to check controller performance
+%                 % without any thruster limit 
+%                 a_x = a_req(1);
+%                 a_y = a_req(2);
+%                 a_z = a_req(3);
+                %
                 %log
-%                 F_Th_Opt(k_stage,:) = [f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11];
+                F_Th_Opt(k_stage,:) = f_thruster;
                 Force_Moment_log(k_stage,:) = [a_x, a_y, a_z, U_M'];
                 %
                 [~,X_temp] = ode45(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
@@ -282,7 +271,7 @@ classdef Simulator_CW < handle
         toc
         T_ode45 = tspan(1:end-1)';
         % plot results
-        plot_results(obj, T_ode45, Force_Moment_log, X_ode45 )
+        plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt)
         
         %function declarations
             function x_dot = ode_eq(~,X1)
@@ -335,21 +324,33 @@ classdef Simulator_CW < handle
         end
         
         
-        function [U_M, a_x, a_y, a_z] = to_Moments_Forces(obj,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,R0,V0,q)
+        function [U_M, a_x, a_y, a_z] = to_Moments_Forces(obj,f_thruster,rotM_RSW2ECI, rotM_ECI2body)
+            f0 = f_thruster(1);
+            f1 = f_thruster(2);
+            f2 = f_thruster(3);
+            f3 = f_thruster(4);
+            f4 = f_thruster(5);
+            f5 = f_thruster(6);
+            f6 = f_thruster(7);
+            f7 = f_thruster(8);
+            f8 = f_thruster(9);
+            f9 = f_thruster(10);
+            f10 = f_thruster(11);
+            f11 = f_thruster(12);
+            
             % Moments
-            U_M_y = (f0-f1+f6-f7)*obj.T_dist;
-            U_M_z = (f2-f3+f8-f9)*obj.T_dist;
-            U_M_x = (f4-f5+f10-f11)*obj.T_dist;
+            U_M_y = (f0-f1-f6+f7)*obj.T_dist;
+            U_M_z = (f2-f3-f8+f9)*obj.T_dist;
+            U_M_x = (f4-f5-f10+f11)*obj.T_dist;
             U_M = [U_M_x; U_M_y; U_M_z];
             
             % Accelerations (expressed in body frame of reference)
-            a_x_body = (f0+f1+f6+f7)/obj.Mass;
-            a_y_body = (f2+f3+f8+f9)/obj.Mass;
-            a_z_body = (f4+f5+f10+f11)/obj.Mass;
+            a_x_body = (f0+f1-f6-f7)/obj.Mass;
+            a_y_body = (f2+f3-f8-f9)/obj.Mass;
+            a_z_body = (f4+f5-f10-f11)/obj.Mass;
             % transform vectors
-            rotM_RSW2ECI = RSW2ECI(obj, R0, V0);
-            rotM_ECI2body = ECI2body(obj,q);
-            
+%             rotM_RSW2ECI = RSW2ECI(obj, R0, V0);
+%             rotM_ECI2body = ECI2body(obj,q);
             accM = rotM_RSW2ECI\(rotM_ECI2body\[a_x_body a_y_body a_z_body]');
             a_x = accM(1);
             a_y = accM(2);
@@ -395,18 +396,19 @@ classdef Simulator_CW < handle
                 single(controller.v_Mthruster(controller.M_U_Optimal_id_J3)), 'linear','nearest');
         end
         
-        function [M, a_x, a_y, a_z] = Opt_Force_Moments(obj,R0,V0, Xin, q)
-             % Forces (expressed in body frame of reference)
-               a_x = obj.F_controller( Xin(1), Xin(4))/obj.Mass; % X(1:3) represent position and X(4:6) velocities
-               a_y = obj.F_controller( Xin(2), Xin(5))/obj.Mass;
-               a_z = obj.F_controller( Xin(3), Xin(6))/obj.Mass;
-               
-               %Moments
-               M = zeros(3,1);
-               M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
-               M(2) = obj.M_controller_J2( 2*asin(Xin(8)) , Xin(12) ); %where X(11:13) represent rotational speeds
-               M(3) = obj.M_controller_J3( 2*asin(Xin(9)) , Xin(13) ); %where X(11:13) represent rotational speeds
-               
+        function [M, a] = Opt_Force_Moments(obj, Xin)
+            % Forces (expressed in body frame of reference)
+            a = zeros(3,1);
+            a(1) = obj.F_controller( Xin(1), Xin(4))/obj.Mass; % X(1:3) represent position and X(4:6) velocities
+            a(2) = obj.F_controller( Xin(2), Xin(5))/obj.Mass;
+            a(3) = obj.F_controller( Xin(3), Xin(6))/obj.Mass;
+            
+            %Moments
+            M = zeros(3,1);
+            M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
+            M(2) = obj.M_controller_J2( 2*asin(Xin(8)) , Xin(12) ); %where X(11:13) represent rotational speeds
+            M(3) = obj.M_controller_J3( 2*asin(Xin(9)) , Xin(13) ); %where X(11:13) represent rotational speeds
+            
         end
     end
     

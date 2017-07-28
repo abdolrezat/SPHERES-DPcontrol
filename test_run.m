@@ -27,12 +27,13 @@ addpath(path,'simulator')
     controller.n_mesh_t = 700;
     controller.n_mesh_w = 700;
 %
-% generate_DP_ForceMoment_controller(controller)
-generate_DP_ForceMoment_controller(controller, '+visualization')
+generate_DP_ForceMoment_controller(controller)
+% generate_DP_ForceMoment_controller(controller, '+visualization')
 
 %% Simulate the results
 
 %simulator variables
+    simulator_opts.mode = 'normal';
     simulator_opts.current_controller = 'controller_50m_71deg';
     simulator_opts.T_final = 90;
     simulator_opts.h = 0.005;

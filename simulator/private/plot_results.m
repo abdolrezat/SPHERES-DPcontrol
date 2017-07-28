@@ -1,82 +1,82 @@
-function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 )
+function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt)
 %% plot Thruster Firings
-%         ylim_thr = [-.15 .15];
-%         pos_fig_thruster = [7.4000   61.8000  538.4000  712.8000];
-%         figure('Name','Thruster Firings','Position',pos_fig_thruster)
-%         subplot(4,3,1)
-%         plot(T_ode45, F_Th_Opt(:,1))
-%         title('#0 (x)')
-%         grid on
-%         ylim(ylim_thr)
-%         %% xlim([-0.05 Inf])
-%         
-%         subplot(4,3,2)
-%         plot(T_ode45, F_Th_Opt(:,3))
-%         title('#2 (y)')    
-%         grid on
-%         ylim(ylim_thr)
-%         
-%         subplot(4,3,3)
-%         plot(T_ode45, F_Th_Opt(:,5))
-%         title('#4 (z)')
-%         grid on
-%         ylim(ylim_thr)
-%         
-%         subplot(4,3,4)
-%         plot(T_ode45, F_Th_Opt(:,2))
-%         title('#1 (x)')
-%         grid on
-%         ylim(ylim_thr)
-%         
-%         subplot(4,3,5)
-%         plot(T_ode45, F_Th_Opt(:,4))
-%         title('#3 (y)')
-%         grid on
-%         ylim(ylim_thr)
-%         
-%         subplot(4,3,6)
-%         plot(T_ode45, F_Th_Opt(:,6))
-%         title('#5 (z)')
-%         grid on
-%         ylim(ylim_thr)
-%         
-%         subplot(4,3,7)
-%         plot(T_ode45, F_Th_Opt(:,7))
-%         title('#6 (-x)')
-%         grid on
-%         ylim(ylim_thr)
-%         
-%         subplot(4,3,8)
-%         plot(T_ode45, F_Th_Opt(:,9))
-%         title('#8 (-y)')
-%         grid on
-%         ylim(ylim_thr)
-%         
-%         subplot(4,3,9)
-%         plot(T_ode45, F_Th_Opt(:,11))
-%         title('#10 (-z)')
-%         grid on
-%         ylim(ylim_thr)
-%         
-%         subplot(4,3,10)
-%         plot(T_ode45, F_Th_Opt(:,8))
-%         title('#7 (-x)')
-%         grid on
-%         ylim(ylim_thr)
-%         
-%         subplot(4,3,11)
-%         plot(T_ode45, F_Th_Opt(:,10))
-%         title('#9 (-y)')
-%         grid on
-%         ylim(ylim_thr)
-%         
-%         subplot(4,3,12)
-%         plot(T_ode45, F_Th_Opt(:,12))
-%         title('#11 (-z)')
-%         grid on
-%         ylim(ylim_thr)
-%   
-%% 
+        ylim_thr = [-.15 .15];
+        pos_fig_thruster = [7.4000   61.8000  538.4000  712.8000];
+        figure('Name','Thruster Firings','Position',pos_fig_thruster)
+        subplot(4,3,1)
+        plot(T_ode45, F_Th_Opt(:,1))
+        title('#0 (x)')
+        grid on
+        ylim(ylim_thr)
+        %% xlim([-0.05 Inf])
+        
+        subplot(4,3,2)
+        plot(T_ode45, F_Th_Opt(:,3))
+        title('#2 (y)')    
+        grid on
+        ylim(ylim_thr)
+        
+        subplot(4,3,3)
+        plot(T_ode45, F_Th_Opt(:,5))
+        title('#4 (z)')
+        grid on
+        ylim(ylim_thr)
+        
+        subplot(4,3,4)
+        plot(T_ode45, F_Th_Opt(:,2))
+        title('#1 (x)')
+        grid on
+        ylim(ylim_thr)
+        
+        subplot(4,3,5)
+        plot(T_ode45, F_Th_Opt(:,4))
+        title('#3 (y)')
+        grid on
+        ylim(ylim_thr)
+        
+        subplot(4,3,6)
+        plot(T_ode45, F_Th_Opt(:,6))
+        title('#5 (z)')
+        grid on
+        ylim(ylim_thr)
+        
+        subplot(4,3,7)
+        plot(T_ode45, F_Th_Opt(:,7))
+        title('#6 (-x)')
+        grid on
+        ylim(ylim_thr)
+        
+        subplot(4,3,8)
+        plot(T_ode45, F_Th_Opt(:,9))
+        title('#8 (-y)')
+        grid on
+        ylim(ylim_thr)
+        
+        subplot(4,3,9)
+        plot(T_ode45, F_Th_Opt(:,11))
+        title('#10 (-z)')
+        grid on
+        ylim(ylim_thr)
+        
+        subplot(4,3,10)
+        plot(T_ode45, F_Th_Opt(:,8))
+        title('#7 (-x)')
+        grid on
+        ylim(ylim_thr)
+        
+        subplot(4,3,11)
+        plot(T_ode45, F_Th_Opt(:,10))
+        title('#9 (-y)')
+        grid on
+        ylim(ylim_thr)
+        
+        subplot(4,3,12)
+        plot(T_ode45, F_Th_Opt(:,12))
+        title('#11 (-z)')
+        grid on
+        ylim(ylim_thr)
+  
+% 
         %plot Moments
         ylim_F = [-0.3 0.3]/obj.Mass;
         ylim_M = [-0.3 0.3]*obj.T_dist;
