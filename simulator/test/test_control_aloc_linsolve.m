@@ -4,7 +4,7 @@ function test_control_aloc_linsolve
 % B = [0,0,0,0,1,-1,0,0,0,0,-1,1;1,-1,0,0,0,0,-1,1,0,0,0,0;0,0,1,-1,0,0,0,0,-1,1,0,0];
 % A = double([P;B]);
 % F = [f0 f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11]';
-U = [0.8;0.2;0.1;-0.1;0.1;0];
+U = [0.2;0.2;0.1;-0;0.1;0];
 Ax = [1 1 -1 -1;1 -1 -1 1];
 Ux = [U(1);U(4)];
 
@@ -29,6 +29,12 @@ lb = 0*f_A;
 ub = max__oneT*f_A;
 ans4 = linprog(f_A,[],[],Ax,Ux,lb,ub);
 verify_ans4 = Ax*ans4;
+keyboard
+%% linprog2
+options = optimoptions(@linprog,'Algorithm','dual-simplex','Display','iter');
+[x,fval,exitflag,output] = ...
+    linprog(f_A,[],[],Ax,Ux,lb,ub,options);
+
 
 %% fmincon
 objectivef = @(x)(x*x');
@@ -53,4 +59,19 @@ options = optimoptions(options,'Display', 'off');
 options = optimoptions(options,'PlotFcn', {  @optimplotx @optimplotfunccount @optimplotfval });
 [x,fval,exitflag,output,lambda,grad,hessian] = ...
 fmincon(@(x)(x*x'),x0,[],[],Aeq,beq,lb,ub,[],options);
+
+function [f0,f1,f6,f7] = custom_thruster_aloc(F,M)
+if(F > 0)
+    f6 = 0;
+    f7 = 0;
+    A01 = [1 1;1 -1];
+    temp = A01\[F;M];
+    if(any(temp > 0.13) )
+        
+    end
+    
+else
+    
+end
+        
 

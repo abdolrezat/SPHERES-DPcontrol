@@ -192,15 +192,63 @@ classdef Simulator_CW < handle
             % gets the optimal on/off state of thrusters by assigning
             % thruster forces properly to make up accelerations in the Body
             % frame of reference
-            A = [1,1,0,0,0,0,-1,-1,0,0,0,0;0,0,1,1,0,0,0,0,-1,-1,0,0;...
-                0,0,0,0,1,1,0,0,0,0,-1,-1;0,0,0,0,1,-1,0,0,0,0,-1,1;...
-                1,-1,0,0,0,0,-1,1,0,0,0,0;0,0,1,-1,0,0,0,0,-1,1,0,0]; % A*f = [F;M/Tdist]
+            F_Body_req = a_Body_req*obj.Mass;
+            
             if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f0) off
+                A = [0,1,0,0,0,0,-1,-1,0,0,0,0;...
+                    0,0,1,1,0,0,0,0,-1,-1,0,0;...
+                    0,0,0,0,1,1,0,0,0,0,-1,-1;...
+                    0,0,0,0,1,-1,0,0,0,0,-1,1;...
+                    0,-1,0,0,0,0,-1,1,0,0,0,0;...
+                    0,0,1,-1,0,0,0,0,-1,1,0,0]; % A*f = [F;M/Tdist]
+                %thruster force required
+                f = A\[F_Body_req;M_req];
+                %adjust
+                for i=2:6
+                    f(i) = f(i) + f(i+6);
+                end
                 
+                for i=2:6
+                    if(f(i) < 0)
+                        f(i+6) = -f(i);
+                        f(i) = 0;
+                    else
+                        f(i+6) = 0;
+                    end
+                end
+                
+                if(f(7) < 0)
+                    f(7) = 0;
+                end
+
             else % control with all thrusters operational
-                f = A\[a_Body_req*obj.Mass;... %% !THE THRUSTER LIMITS NOT CONSIDERED!
-                    M_req/obj.T_dist];
+                A = [1,1,0,0,0,0,-1,-1,0,0,0,0;0,0,1,1,0,0,0,0,-1,-1,0,0;...
+                    0,0,0,0,1,1,0,0,0,0,-1,-1;0,0,0,0,1,-1,0,0,0,0,-1,1;...
+                    1,-1,0,0,0,0,-1,1,0,0,0,0;0,0,1,-1,0,0,0,0,-1,1,0,0]; % A*f = [F;M/Tdist]
+                %thruster force required
+                f = A\[F_Body_req;M_req];
+                %adjust
+                for i=1:6
+                    f(i) = f(i) + f(i+6);
+                end
+                
+                for i=1:6
+                    if(f(i) < 0)
+                        f(i+6) = -f(i);
+                        f(i) = 0;
+                    else
+                        f(i+6) = 0;
+                    end
+                end
+                
             end
+%             
+%             %saturate
+%             for i=1:12
+%                 if(f(i) > obj.Thruster_max_F)
+%                     f(i) = obj.Thruster_max_F;
+%                 end
+%             end
             
         end
         
@@ -249,7 +297,9 @@ classdef Simulator_CW < handle
                 rotM_ECI2body = ECI2body(obj,q_stage);
                 % required directional accelerations in Body frame of reference
                 a_Body_req = rotM_ECI2body*rotM_RSW2ECI*  a_req;
-                f_thruster = get_thruster_on_off_optimal(obj, U_M_req, a_Body_req);
+%                 M_Body_req = rotM_ECI2body*rotM_RSW2ECI*  U_M_req;
+                M_Body_req = U_M_req;
+                f_thruster = get_thruster_on_off_optimal(obj, M_Body_req, a_Body_req);
                 % accelerations from thruster forces1
                 [U_M, a_x, a_y, a_z] = to_Moments_Forces(obj,...
                     f_thruster, rotM_RSW2ECI, rotM_ECI2body);
@@ -339,10 +389,12 @@ classdef Simulator_CW < handle
             f11 = f_thruster(12);
             
             % Moments
-            U_M_y = (f0-f1-f6+f7)*obj.T_dist;
-            U_M_z = (f2-f3-f8+f9)*obj.T_dist;
-            U_M_x = (f4-f5-f10+f11)*obj.T_dist;
-            U_M = [U_M_x; U_M_y; U_M_z];
+            U_M_y_body = (f0-f1-f6+f7)*obj.T_dist;
+            U_M_z_body = (f2-f3-f8+f9)*obj.T_dist;
+            U_M_x_body = (f4-f5-f10+f11)*obj.T_dist;
+            U_M_body = [U_M_x_body; U_M_y_body; U_M_z_body];
+%             U_M = rotM_RSW2ECI\(rotM_ECI2body\U_M_body);
+            U_M = U_M_body;
             
             % Accelerations (expressed in body frame of reference)
             a_x_body = (f0+f1-f6-f7)/obj.Mass;
@@ -351,6 +403,7 @@ classdef Simulator_CW < handle
             % transform vectors
 %             rotM_RSW2ECI = RSW2ECI(obj, R0, V0);
 %             rotM_ECI2body = ECI2body(obj,q);
+
             accM = rotM_RSW2ECI\(rotM_ECI2body\[a_x_body a_y_body a_z_body]');
             a_x = accM(1);
             a_y = accM(2);
