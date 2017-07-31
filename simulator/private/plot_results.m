@@ -1,4 +1,36 @@
 function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt)
+%% compare required Force-Moments vs actual Force-Moments
+%
+figure
+plot(T_ode45, Force_Moment_log(:,1))
+hold on
+plot(T_ode45, Force_Moment_log_req(:,1))
+title('Fx')
+legend('actual','required')
+%
+figure
+plot(T_ode45, Force_Moment_log(:,4))
+hold on
+plot(T_ode45, Force_Moment_log_req(:,4))
+title('Mx')
+legend('actual','required')
+%
+figure
+plot(T_ode45, Force_Moment_log(:,2))
+hold on
+plot(T_ode45, Force_Moment_log_req(:,2))
+title('Fy')
+legend('actual','required')
+%
+figure
+plot(T_ode45, Force_Moment_log(:,5))
+hold on
+plot(T_ode45, Force_Moment_log_req(:,5))
+title('My')
+legend('actual','required')
+
+        %
+        
 %% plot Thruster Firings
         ylim_thr = [-.15 .15];
         pos_fig_thruster = [7.4000   61.8000  538.4000  712.8000];

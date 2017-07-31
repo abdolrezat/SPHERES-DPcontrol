@@ -193,7 +193,7 @@ classdef Simulator_CW < handle
             % thruster forces properly to make up accelerations in the Body
             % frame of reference
             F_Body_req = a_Body_req*obj.Mass;
-            
+            B = [F_Body_req;M_req/obj.T_dist];
             if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f0) off
                 A = [0,1,0,0,0,0,-1,-1,0,0,0,0;...
                     0,0,1,1,0,0,0,0,-1,-1,0,0;...
@@ -202,7 +202,7 @@ classdef Simulator_CW < handle
                     0,-1,0,0,0,0,-1,1,0,0,0,0;...
                     0,0,1,-1,0,0,0,0,-1,1,0,0]; % A*f = [F;M/Tdist]
                 %thruster force required
-                f = A\[F_Body_req;M_req];
+                f = A\B;
                 %adjust
                 for i=2:6
                     f(i) = f(i) + f(i+6);
@@ -226,7 +226,7 @@ classdef Simulator_CW < handle
                     0,0,0,0,1,1,0,0,0,0,-1,-1;0,0,0,0,1,-1,0,0,0,0,-1,1;...
                     1,-1,0,0,0,0,-1,1,0,0,0,0;0,0,1,-1,0,0,0,0,-1,1,0,0]; % A*f = [F;M/Tdist]
                 %thruster force required
-                f = A\[F_Body_req;M_req];
+                f = A\B;
                 %adjust
                 for i=1:6
                     f(i) = f(i) + f(i+6);
@@ -242,13 +242,26 @@ classdef Simulator_CW < handle
                 end
                 
             end
+%             options = optimoptions(@linprog,'Algorithm','dual-simplex','Display','none');
+%             f2 = linprog(ones(1,12),[],[],A,[F_Body_req;M_req],zeros(1,12),[],options);
+%             try
+%             ef = f - f2;
 %             
-%             %saturate
-%             for i=1:12
-%                 if(f(i) > obj.Thruster_max_F)
-%                     f(i) = obj.Thruster_max_F;
-%                 end
+%             if( abs(ef'*ef) > 1e-5)
+%                 keyboard
 %             end
+%             
+%             catch
+%                 keyboard
+%             end
+            
+            
+            %saturate
+            for i=1:12
+                if(f(i) > obj.Thruster_max_F)
+                    f(i) = obj.Thruster_max_F;
+                end
+            end
             
         end
         
@@ -271,6 +284,7 @@ classdef Simulator_CW < handle
             X_ode45 = zeros(N_total_sim, 13);
             F_Th_Opt = zeros(N_total_sim, 12);
             Force_Moment_log = zeros(N_total_sim, 6);
+            Force_Moment_log_req = zeros(N_total_sim, 6);
             X_ode45(1,:) = X0;
             % Calculate the target initial state vector
             [R0,V0] = get_target_R0V0();
@@ -310,19 +324,22 @@ classdef Simulator_CW < handle
 %                 a_x = a_req(1);
 %                 a_y = a_req(2);
 %                 a_z = a_req(3);
+%                 U_M = U_M_req;
                 %
                 %log
                 F_Th_Opt(k_stage,:) = f_thruster;
                 Force_Moment_log(k_stage,:) = [a_x, a_y, a_z, U_M'];
+                Force_Moment_log_req(k_stage,:) = [a_req;U_M_req];
                 %
                 [~,X_temp] = ode45(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
                 X_ode45(k_stage+1,:) = X_temp(end,:);
             end
         toc
         T_ode45 = tspan(1:end-1)';
+        F = Force_Moment_log./ Force_Moment_log_req;
         % plot results
-        plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt)
-        
+        plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt, Force_Moment_log_req)
+
         %function declarations
             function x_dot = ode_eq(~,X1)
                 x_dot = system_dynamics(X1);
