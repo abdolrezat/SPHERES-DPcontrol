@@ -1,3 +1,4 @@
+function test_surface(filename)
 %test the controller values to see what portion of their surface (optimal)
 %is made up from max and min values of Forces or Moments
 %this controller has the optimal values for Forces and moments after trying
@@ -8,7 +9,14 @@
 %other words: vector_F = [-max_thrusters*2, 0, max_thrusters*2] would
 %suffice to obtain a good estimate on these surfaces, and the calculation
 %times are greatly reduced.
-controller = load('controller_linspace2_70m_70deg.mat');
+%
+%example:
+%filename = 'controller_linspace2_70m_70deg.mat'.
+%
+path_ = strsplit(mfilename('fullpath'),'\\');
+path_ = strjoin(path_(1:end-1),'\');
+
+controller = load(strcat(path_,'\',filename));
 
 % refine boundaries
 temp =  controller.F_gI{1};
