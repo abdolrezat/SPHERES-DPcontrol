@@ -37,6 +37,8 @@ if(nargin > 0)
     n_mesh_v = controller.n_mesh_v;
     n_mesh_t = controller.n_mesh_t;
     n_mesh_w = controller.n_mesh_w;
+    n_mesh_F = controller.n_mesh_F;
+    n_mesh_M = controller.n_mesh_M;
     
 else
     controller_name = 'controller_linspace2_70m_70deg_3F_noname';
@@ -55,25 +57,28 @@ else
     lim_v = [-2.0 2.0]; %in m/s
     lim_t = deg2rad([-70 70]); %in degrees, converts to rad
     lim_w = deg2rad([-50 50]); %in rad/s
+    
+    n_mesh_x = 10;
+    n_mesh_v = 10;
+    n_mesh_t = 10;
+    n_mesh_w = 10;
+    n_mesh_F = 10;
+    n_mesh_M = 10;
 end
 %SPHERES config values
 J1 = 0.02836 + 0.00016;
 J2 =  0.026817 + 0.00150;
 J3 =  0.023 + 0.00150;
 Mass = 4.16;
-Thruster_dist = 9.65E-2; % (meters)
-
-Thruster_max_F = 0.13; % (N)
-Thruster_max_M = Thruster_max_F*Thruster_dist;
 
     %logarithmic spacing
-    s_x = mesh_state_log(lim_x, n_mesh_x, 0.06);
-    s_v = mesh_state_log(lim_v, n_mesh_v, 2.4);
-    s_t = mesh_state_log(lim_t, n_mesh_t, rad2deg(0.06));
-    s_w = mesh_state_log(lim_w, n_mesh_w, rad2deg(0.1));
+    s_x = mesh_state_log(lim_x, n_mesh_x, 5);
+    s_v = mesh_state_log(lim_v, n_mesh_v, 5);
+    s_t = mesh_state_log(lim_t, n_mesh_t, 5);
+    s_w = mesh_state_log(lim_w, n_mesh_w, 5);
     %linear spacing
-    v_Fthruster = mesh_state(2*[-Thruster_max_F Thruster_max_F], 3);
-    v_Mthruster = mesh_state(2*[-Thruster_max_M Thruster_max_M], 3);
+    v_Fthruster = mesh_state(controller.lim_F, n_mesh_F);
+    v_Mthruster = mesh_state(controller.lim_M, n_mesh_M);
 
 filename = strcat(path_,'\','controller\',controller_name);
 

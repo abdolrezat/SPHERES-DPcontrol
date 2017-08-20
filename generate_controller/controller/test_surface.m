@@ -1,3 +1,4 @@
+function test_surface(filename)
 %test the controller values to see what portion of their surface (optimal)
 %is made up from max and min values of Forces or Moments
 %this controller has the optimal values for Forces and moments after trying
@@ -8,7 +9,14 @@
 %other words: vector_F = [-max_thrusters*2, 0, max_thrusters*2] would
 %suffice to obtain a good estimate on these surfaces, and the calculation
 %times are greatly reduced.
-controller = load('controller_linspace2_70m_70deg.mat');
+%
+%example:
+%filename = 'controller_linspace2_70m_70deg.mat'.
+%
+path_ = strsplit(mfilename('fullpath'),'\\');
+path_ = strjoin(path_(1:end-1),'\');
+
+controller = load(strcat(path_,'\',filename));
 
 % refine boundaries
 temp =  controller.F_gI{1};
@@ -47,8 +55,13 @@ figure
 XF1 = repmat(controller.F_gI{1}', [1 length(controller.F_gI{2})]);
 XF2 = repmat(controller.F_gI{2}, [length(controller.F_gI{1}) 1]);
 
-mesh(XF1,XF2,F_controller.Values)
-title('F_optimal')
+axF = mesh(XF1,XF2,F_controller.Values);
+axF.Parent.View= [0 90];
+title('Optimal Force from Position Controller')
+xlabel('position (x)')
+ylabel('velocity (v)')
+zlabel('Force (N)')
+colormap('jet')
 %calculations
 percentage_F = (sum(F_controller.Values(:) > 0.25) +...
     sum(F_controller.Values(:) < -0.25)) / numel(F_controller.Values);
@@ -59,16 +72,21 @@ unq_F = unique(F_controller.Values(:));
 %plots (M)
 figure
 
-XM1 = repmat(controller.M_gI_J3{1}', [1 length(controller.M_gI_J3{2})]);
+XM1 = rad2deg(repmat(controller.M_gI_J3{1}', [1 length(controller.M_gI_J3{2})]));
 XM2 = repmat(controller.M_gI_J3{2}, [length(controller.M_gI_J3{1}) 1]);
 
-mesh(XM1,XM2,M_controller_J3.Values)
-title('M_optimal')
+axM = mesh(XM1,XM2,M_controller_J3.Values);
+axM.Parent.View= [0 90];
+title('Optimal Moment from Attitude Controller')
+xlabel('angle (\theta)')
+ylabel('rotational speed (\omega)')
+zlabel('Moment (N.m)')
+colormap('jet')
 %calculations
 unq_M3 = unique(M_controller_J3.Values(:));
 max_M3 = unq_M3(end-2);
 percentage_M3 = (sum(M_controller_J3.Values(:) > max_M3) +...
     sum(M_controller_J3.Values(:) < -max_M3)) / numel(M_controller_J3.Values);
 
-
-
+figure
+contourf(XM1,XM2,M_controller_J3.Values,'ShowText','on')
