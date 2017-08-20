@@ -55,8 +55,13 @@ figure
 XF1 = repmat(controller.F_gI{1}', [1 length(controller.F_gI{2})]);
 XF2 = repmat(controller.F_gI{2}, [length(controller.F_gI{1}) 1]);
 
-mesh(XF1,XF2,F_controller.Values)
-title('F_optimal')
+axF = mesh(XF1,XF2,F_controller.Values);
+axF.Parent.View= [0 90];
+title('Optimal Force from Position Controller')
+xlabel('position (x)')
+ylabel('velocity (v)')
+zlabel('Force (N)')
+colormap('jet')
 %calculations
 percentage_F = (sum(F_controller.Values(:) > 0.25) +...
     sum(F_controller.Values(:) < -0.25)) / numel(F_controller.Values);
@@ -67,16 +72,21 @@ unq_F = unique(F_controller.Values(:));
 %plots (M)
 figure
 
-XM1 = repmat(controller.M_gI_J3{1}', [1 length(controller.M_gI_J3{2})]);
+XM1 = rad2deg(repmat(controller.M_gI_J3{1}', [1 length(controller.M_gI_J3{2})]));
 XM2 = repmat(controller.M_gI_J3{2}, [length(controller.M_gI_J3{1}) 1]);
 
-mesh(XM1,XM2,M_controller_J3.Values)
-title('M_optimal')
+axM = mesh(XM1,XM2,M_controller_J3.Values);
+axM.Parent.View= [0 90];
+title('Optimal Moment from Attitude Controller')
+xlabel('angle (\theta)')
+ylabel('rotational speed (\omega)')
+zlabel('Moment (N.m)')
+colormap('jet')
 %calculations
 unq_M3 = unique(M_controller_J3.Values(:));
 max_M3 = unq_M3(end-2);
 percentage_M3 = (sum(M_controller_J3.Values(:) > max_M3) +...
     sum(M_controller_J3.Values(:) < -max_M3)) / numel(M_controller_J3.Values);
 
-
-
+figure
+contourf(XM1,XM2,M_controller_J3.Values,'ShowText','on')

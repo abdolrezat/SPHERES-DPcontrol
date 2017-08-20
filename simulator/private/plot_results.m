@@ -1,4 +1,4 @@
-function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt)
+function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt, Force_Moment_log_req)
 %% compare required Force-Moments vs actual Force-Moments
 %
 figure
@@ -173,6 +173,19 @@ legend('actual','required')
         grid on
         legend('v1','v2','v3')
         
+         % plot states - angles
+        pos_fig_a = [973.0000  218.6000  518.4000  326.4000];
+        figure('Name','states - angles','Position',pos_fig_a)
+        
+        [theta3,theta2,theta1] = quat2angle(X_ode45(:,10:-1:7));
+
+        plot(T_ode45, theta1*180/pi)
+        hold on
+        plot(T_ode45, theta2*180/pi)
+        plot(T_ode45, theta3*180/pi)
+        grid on
+        legend('\theta_1','\theta_2','\theta_3')
+               
         % plot states - q
         pos_fig_q = [973.0000  218.6000  518.4000  326.4000];
         figure('Name','states - quaternions','Position',pos_fig_q)
