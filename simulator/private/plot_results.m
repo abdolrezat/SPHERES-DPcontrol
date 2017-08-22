@@ -109,7 +109,7 @@ legend('actual','required')
         ylim(ylim_thr)
   
 % 
-        %plot Moments
+        %plot Forces and Moments
         ylim_F = [-0.3 0.3]/obj.Mass;
         ylim_M = [-0.3 0.3]*obj.T_dist;
         pos_fig_FM = [547.4000  449.8000  518.4000  326.4000];
@@ -120,36 +120,55 @@ legend('actual','required')
         title('acceleration x-direction')
         grid on
         ylim(ylim_F)
+        hold on
+        plot(T_ode45, Force_Moment_log_req(:,1),'r')
+        legend('actual','required')
+
         
         subplot(3,2,3)
         plot(T_ode45, Force_Moment_log(:,2))
         title('acceleration y-direction')
         grid on
         ylim(ylim_F)
+        hold on
+        plot(T_ode45, Force_Moment_log_req(:,2),'r')
+        legend('actual','required')
         
         subplot(3,2,5)
         plot(T_ode45, Force_Moment_log(:,3))
         title('acceleration z-direction')
         grid on
         ylim(ylim_F)
+        hold on
+        plot(T_ode45, Force_Moment_log_req(:,3),'r')
+        legend('actual','required')
         
         subplot(3,2,2)
         plot(T_ode45, Force_Moment_log(:,4))
         title('Moment x-direction')
         grid on
         ylim(ylim_M)
+        hold on
+        plot(T_ode45, Force_Moment_log_req(:,4),'r')
+        legend('actual','required')
         
         subplot(3,2,4)
         plot(T_ode45, Force_Moment_log(:,5))
         title('Moment y-direction')
         grid on
         ylim(ylim_M)
+        hold on
+        plot(T_ode45, Force_Moment_log_req(:,5),'r')
+        legend('actual','required')
         
         subplot(3,2,6)
         plot(T_ode45, Force_Moment_log(:,6))
         title('Moment z-direction')
         grid on
         ylim(ylim_M)
+        hold on
+        plot(T_ode45, Force_Moment_log_req(:,6),'r')
+        legend('actual','required')
         
         % plot states - pos
         pos_fig_x = [543.4000   49.0000  518.4000  326.4000];
