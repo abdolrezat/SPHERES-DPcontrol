@@ -4,10 +4,13 @@ function [M_gI,U_Optimal_id] = DP_TW_one_channel_U_Opt(s_t,s_w, ...
 %calculate and correct number of stages if needed
 N_stage = T_final/h;
 
-if(~isinteger( N_stage))
+if(rem(T_final,h) == 0)
+    N_stage = T_final/h;
+else
+    N_stage = T_final/h;
     N_stage = ceil(N_stage);
     T_final = h*N_stage;
-    warning('T_final is not a factor of h (dt), increasing T_final to %.2f\n', T_final)
+    warning('T_final is not a factor of h (dt), increasing T_final to %.3f\n',T_final)
 end
 
 n_t = length(s_t);
