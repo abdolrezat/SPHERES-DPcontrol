@@ -4,6 +4,7 @@ classdef Simulator_CW < handle
     
     properties
         mode %simulator mode, 'fault' for one thruster inoperative situation
+        faulty_thruster_index %index of faulty thruster #0 - #11
         N % number of stages
         Mass % Mass
         InertiaM % Moment of Inertia Matrix
@@ -46,17 +47,7 @@ classdef Simulator_CW < handle
     methods
         function this = Simulator_CW(simopts)
             if nargin == 0
-                this.current_controller = 'controller_linspace2_20m_20deg_3F';
-                this.T_final = 60;
-                this.h = 0.005;
-                
-                dr0 = [10 12 0];
-                dv0 = [0 0 0];
-                q0 = flip(angle2quat(deg2rad(20),deg2rad(40),deg2rad(0)));
-                
-                w0 = [0 0 0];
-                this.defaultX0 = [dr0 dv0 q0 w0]';
-                this.mode = 'normal';
+                error('the simulator requires options structure as an input')
             else
                 this.current_controller = simopts.current_controller;
                 this.T_final = simopts.T_final;
@@ -65,6 +56,7 @@ classdef Simulator_CW < handle
                 this.mode = simopts.mode;
                 this.controller_Interpmode = simopts.controller_Interpmode;
                 this.thruster_allocation_mode = simopts.thruster_allocation_mode;
+                this.faulty_thruster_index = simopts.faulty_thruster_index;
             end
             
             this.Mass = 4.16;
@@ -112,22 +104,22 @@ classdef Simulator_CW < handle
             %6x PWPF objects
             this.PWPF1 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
             this.PWPF2 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
             this.PWPF3 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
             this.PWPF4 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
             this.PWPF5 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
             this.PWPF6 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
         end
         
         
@@ -139,12 +131,12 @@ classdef Simulator_CW < handle
             B = [F_Body_req;M_req/obj.T_dist];
             f = zeros(12,1);
             %Control allocation to Thruster Pairs
-            A = [1,1,0,0,0,0;...
-                0,0,1,1,0,0;...
-                0,0,0,0,1,1;...
-                0,0,0,0,1,-1;...
-                1,-1,0,0,0,0;...
-                0,0,1,-1,0,0];
+%             A = [1,1,0,0,0,0;...
+%                 0,0,1,1,0,0;...
+%                 0,0,0,0,1,1;...
+%                 0,0,0,0,1,-1;...
+%                 1,-1,0,0,0,0;...
+%                 0,0,1,-1,0,0];
             invA = [0.5,  0,  0,  0,  0.5,  0; ...
                     0.5,  0,  0,  0,  -0.5,  0; ...
                     0,  0.5,  0,  0,  0,  0.5; ...
@@ -178,7 +170,7 @@ classdef Simulator_CW < handle
             end
             
             if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
-                f(1) = 0;
+                f(obj.faulty_thruster_index +1) = 0;
             end
             
         end

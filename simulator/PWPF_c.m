@@ -7,12 +7,13 @@ classdef PWPF_c < handle
         h
         Km
         Tm
+        H_feed
         ufeedback
         u_accum
     end
     
     methods
-        function this = PWPF_c(Km,Tm,h,Uout,Uon,Uoff)
+        function this = PWPF_c(Km,Tm,h,Uout,Uon,Uoff,H_feed)
             % initialization
             this.ufeedback = 0;
             this.u_accum = 0;
@@ -20,12 +21,12 @@ classdef PWPF_c < handle
             this.Tm = Tm;
             this.h = h;
             this.schmitt = Schmitt_trigger_c(Uout,Uon,Uoff);
-            
+            this.H_feed = H_feed;
         end
         
         function out = signal_update(obj, Uin)
             %calculate error
-            e = Uin - obj.ufeedback;
+            e = Uin - obj.ufeedback*obj.H_feed;
             
             %Transfer Function 1/ first order delay
             udot = (obj.Km*e - obj.u_accum)/obj.Tm;
