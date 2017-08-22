@@ -22,10 +22,10 @@ controller = load(strcat(path_,'\',filename));
 F_controller = griddedInterpolant(controller.F_gI,...
     single(controller.v_Fthruster(controller.F_U_Optimal_id)), 'linear','nearest');
 
-M_controller_J1 = griddedInterpolant(controller.M_gI_J1,...
-    single(controller.v_Mthruster(controller.M_U_Optimal_id_J1)), 'linear','nearest');
-M_controller_J2 = griddedInterpolant(controller.M_gI_J2,...
-    single(controller.v_Mthruster(controller.M_U_Optimal_id_J2)), 'linear','nearest');
+% M_controller_J1 = griddedInterpolant(controller.M_gI_J1,...
+%     single(controller.v_Mthruster(controller.M_U_Optimal_id_J1)), 'linear','nearest');
+% M_controller_J2 = griddedInterpolant(controller.M_gI_J2,...
+%     single(controller.v_Mthruster(controller.M_U_Optimal_id_J2)), 'linear','nearest');
 M_controller_J3 = griddedInterpolant(controller.M_gI_J3,...
     single(controller.v_Mthruster(controller.M_U_Optimal_id_J3)), 'linear','nearest');
 
@@ -34,7 +34,7 @@ figure
 
 XF1 = repmat(controller.F_gI{1}', [1 length(controller.F_gI{2})]);
 XF2 = repmat(controller.F_gI{2}, [length(controller.F_gI{1}) 1]);
-UF = F_controller.Values;close all
+UF = F_controller.Values;
 
 [x_next,v_next] = next_stage_states_simplified(XF1, XF2, UF, 0.005 ,4.16);
 quiv_x = x_next - XF1;
@@ -63,9 +63,17 @@ figure
 
 XM1 = rad2deg(repmat(controller.M_gI_J3{1}', [1 length(controller.M_gI_J3{2})]));
 XM2 = repmat(controller.M_gI_J3{2}, [length(controller.M_gI_J3{1}) 1]);
+UM3 = M_controller_J3.Values;
 
-axM = mesh(XM1,XM2,M_controller_J3.Values);
+[t_next,w_next] = next_stage_states_simplified(XM1, XM2, UM3, 0.005 ,(0.023 + 0.00150) );
+quiv_t = t_next - XM1;
+quiv_w = w_next - XM2;
+
+axM = mesh(XM1,XM2,UM3);
 axM.Parent.View= [0 90];
+hold on
+quiver3(XM1,XM2,UM3,quiv_t,quiv_w,quiv_w*0)
+
 title('Optimal Moment from Attitude Controller')
 xlabel('angle (\theta)')
 ylabel('rotational speed (\omega)')
