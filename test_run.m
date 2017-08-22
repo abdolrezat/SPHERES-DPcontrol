@@ -1,7 +1,7 @@
 %TEST_RUN runs a sample of the code in this repository
 %   First it generates a controller using a vectorized Dynamic Programming
 %   algorithm and then it launches the simulator that uses this controller 
-addpath(path,'generate_controller')
+addpath(path,genpath('generate_controller'))
 addpath(path,'simulator')
 %% generate controller
 %controller variables
@@ -48,7 +48,7 @@ test_surface(controller.name)
 %% Simulate the results
 %simulator variables
     simulator_opts.mode = 'fault';   % 'normal' for all thrusters operative or 'fault' for one thruster inoperative
-    simulator_opts.faulty_thruster_index = 10; %index of faulty thruster #0-#11 
+    simulator_opts.faulty_thruster_index = 0; %index of faulty thruster(s) #0-#11 
     simulator_opts.current_controller = controller.name;
     simulator_opts.controller_Interpmode = 'linear'; %interpolation mehod of controller output
     simulator_opts.T_final = 170; %simulation Tfinal
