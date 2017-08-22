@@ -1,4 +1,4 @@
-classdef Schmitt_trigger_c
+classdef Schmitt_trigger_c < handle
     %SCHMITT_TRIGGER Summary of this class goes here
     %   Detailed explanation goes here
     

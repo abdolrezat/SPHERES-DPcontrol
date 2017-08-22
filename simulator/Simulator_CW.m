@@ -28,12 +28,19 @@ classdef Simulator_CW < handle
         M_controller_J2
         M_controller_J3
         controller_Interpmode %controller interpolation mode, 'nearest' for thruster on-off firings only
+        thruster_allocation_mode % 'PWPF', 'Schmitt' (for schmitt trigger only) and 'none' for continuous force application
         schmitt_trigger1
         schmitt_trigger2
         schmitt_trigger3
         schmitt_trigger4
         schmitt_trigger5
         schmitt_trigger6
+        PWPF1
+        PWPF2
+        PWPF3
+        PWPF4
+        PWPF5
+        PWPF6
     end
     
     methods
@@ -57,6 +64,7 @@ classdef Simulator_CW < handle
                 this.defaultX0 = simopts.defaultX0;
                 this.mode = simopts.mode;
                 this.controller_Interpmode = simopts.controller_Interpmode;
+                this.thruster_allocation_mode = simopts.thruster_allocation_mode;
             end
             
             this.Mass = 4.16;
@@ -101,6 +109,25 @@ classdef Simulator_CW < handle
                 simopts.schmitt.Uout,simopts.schmitt.Uon,simopts.schmitt.Uoff);
             this.schmitt_trigger6 = Schmitt_trigger_c(...
                 simopts.schmitt.Uout,simopts.schmitt.Uon,simopts.schmitt.Uoff);
+            %6x PWPF objects
+            this.PWPF1 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+            this.PWPF2 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+            this.PWPF3 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+            this.PWPF4 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+            this.PWPF5 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
+            this.PWPF6 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff);
         end
         
         
@@ -112,12 +139,12 @@ classdef Simulator_CW < handle
             B = [F_Body_req;M_req/obj.T_dist];
             f = zeros(12,1);
             %Control allocation to Thruster Pairs
-%             A = [1,1,0,0,0,0;...
-%                 0,0,1,1,0,0;...
-%                 0,0,0,0,1,1;...
-%                 0,0,0,0,1,-1;...
-%                 1,-1,0,0,0,0;...
-%                 0,0,1,-1,0,0];
+            A = [1,1,0,0,0,0;...
+                0,0,1,1,0,0;...
+                0,0,0,0,1,1;...
+                0,0,0,0,1,-1;...
+                1,-1,0,0,0,0;...
+                0,0,1,-1,0,0];
             invA = [0.5,  0,  0,  0,  0.5,  0; ...
                     0.5,  0,  0,  0,  -0.5,  0; ...
                     0,  0.5,  0,  0,  0,  0.5; ...
@@ -126,10 +153,21 @@ classdef Simulator_CW < handle
                     0,  0,  0.5,  -0.5,  0,  0]; % A*f = [F;M/Tdist], invA = inv(A)
             f_pairs_req = invA*B;
             
-            
-            % Single Thruster Allocation in each pair
-% %             f_pairs = f_pairs_req; %cancels out schmitt trigger
-            f_pairs = schmitt_allpairs(obj,f_pairs_req);
+            switch( lower(obj.thruster_allocation_mode) )
+                case 'pwpf'
+                    % Single Thruster Allocation in each pair
+                    f_pairs = PWPF_allpairs(obj,f_pairs_req);
+                    
+                case 'schmitt'
+                    f_pairs = schmitt_allpairs(obj,f_pairs_req);
+                    
+                case 'none'
+                    % debug code block
+                    f_pairs = f_pairs_req; %cancels out schmitt trigger
+                    %
+                otherwise
+                    error('unknown allocation method')
+            end
             
             for i=1:6
                 if(f_pairs(i) < 0)
@@ -140,7 +178,7 @@ classdef Simulator_CW < handle
             end
             
             if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
-                    f(1) = 0;
+                f(1) = 0;
             end
             
         end
@@ -152,6 +190,15 @@ classdef Simulator_CW < handle
             f_pairs(4) = obj.schmitt_trigger4.signal_update(f_pairs(4));
             f_pairs(5) = obj.schmitt_trigger5.signal_update(f_pairs(5));
             f_pairs(6) = obj.schmitt_trigger6.signal_update(f_pairs(6));
+        end
+        
+        function f_pairs = PWPF_allpairs(obj,f_pairs)
+            f_pairs(1) = obj.PWPF1.signal_update(f_pairs(1));
+            f_pairs(2) = obj.PWPF2.signal_update(f_pairs(2));
+            f_pairs(3) = obj.PWPF3.signal_update(f_pairs(3));
+            f_pairs(4) = obj.PWPF4.signal_update(f_pairs(4));
+            f_pairs(5) = obj.PWPF5.signal_update(f_pairs(5));
+            f_pairs(6) = obj.PWPF6.signal_update(f_pairs(6));
         end
         
         function get_optimal_path(obj)
@@ -227,7 +274,6 @@ classdef Simulator_CW < handle
             end
             toc
             T_ode45 = tspan(1:end-1)';
-            F = Force_Moment_log./ Force_Moment_log_req;
             % plot results
             plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt, Force_Moment_log_req)
             
