@@ -49,7 +49,8 @@ test_surface(controller.name)
 %% Simulate the results
 %simulator variables
     simulator_opts.mode = 'fault';   % 'normal' for all thrusters operative or 'fault' for one thruster inoperative
-    simulator_opts.faulty_thruster_index = [0,6]; %index of faulty thruster(s) #0-#11 
+    simulator_opts.thruster_allocation_mode = 'pwpf'; % {'PWPF', 'Schmitt', 'none'}
+    simulator_opts.faulty_thruster_index = [0,6]; %index of faulty thruster(s) #0-#11
     simulator_opts.current_controller = controller.name;
     simulator_opts.controller_InterpmodeF = 'linear'; %interpolation mehod of F controller output
     simulator_opts.controller_InterpmodeM = 'linear'; %interpolation mehod of M controller output
@@ -63,7 +64,6 @@ test_surface(controller.name)
     simulator_opts.defaultX0 = [dr0 dv0 q0 w0]';
     
     %PWPF and schmitt trigger configuration parameters
-    simulator_opts.thruster_allocation_mode = 'pwpf'; % {'PWPF', 'Schmitt', 'none'}
     simulator_opts.PWPF.Km = 1.5;
     simulator_opts.PWPF.Tm = .2;
     simulator_opts.PWPF.h = 0.005;
