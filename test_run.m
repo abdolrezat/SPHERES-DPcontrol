@@ -57,7 +57,7 @@ test_surface(controller.name)
     simulator_opts.T_final = 300; %simulation Tfinal
     simulator_opts.h = 0.005; %simulation fixed time steps
     %initial state
-    dr0 = [30 0 0]; %initial relative position offset
+    dr0 = [-30 0 0]; %initial relative position offset
     dv0 = [0 0 0]; %initial relative velocity offset
     q0 = flip(angle2quat(deg2rad(0),deg2rad(0),deg2rad(0))); %initial angles offset (yaw,pitch,roll)
     w0 = [0 0 0]; %initial rotational speed offset
