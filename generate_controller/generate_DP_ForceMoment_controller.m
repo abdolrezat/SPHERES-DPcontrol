@@ -90,27 +90,27 @@ filename = strcat(path_,'\','controller\',controller_name);
 T_final = Tf;
 if(visualization == 0)
     [F_gI,F_U_Optimal_id] = DP_XV_one_channel_U_Opt(s_x,s_v, ...
-        v_Fthruster,Qx,Qv,R, h, T_final, Mass);
+        v_Fthruster,Qx,Qv,R, h, T_final, Mass); %#ok<ASGLU>
 else
     [F_gI,F_U_Optimal_id] = DP_XV_one_channel_U_Opt_visualization(s_x,s_v, ...
-        v_Fthruster,Qx,Qv,R, h, T_final, Mass);
+        v_Fthruster,Qx,Qv,R, h, T_final, Mass); %#ok<ASGLU>
 end
 save(filename,'F_gI', 'F_U_Optimal_id','v_Fthruster','v_Mthruster')
 clear('F_gI', 'F_U_Optimal_id')
 
 T_final = Tm;
-[M_gI_J1,M_U_Optimal_id_J1] = DP_TW_one_channel_U_Opt(s_t,s_w, ...
-    v_Mthruster,Qt,Qw,R, h, T_final, J1);
+[M_gI_J1,M_U_Optimal_id_J1] = DP_TW_one_channel_U_Opt(s_t,s_w, ... 
+    v_Mthruster,Qt,Qw,R, h, T_final, J1); %#ok<ASGLU>
 save(filename, 'M_gI_J1' , 'M_U_Optimal_id_J1', '-append')
 clear('M_gI_J1' , 'M_U_Optimal_id_J1')
 
 [M_gI_J2,M_U_Optimal_id_J2] = DP_TW_one_channel_U_Opt(s_t,s_w, ...
-    v_Mthruster,Qt,Qw,R, h, T_final, J2);
+    v_Mthruster,Qt,Qw,R, h, T_final, J2); %#ok<ASGLU>
 save(filename, 'M_gI_J2' , 'M_U_Optimal_id_J2', '-append')
 clear('M_gI_J2' , 'M_U_Optimal_id_J2')
 
 [M_gI_J3,M_U_Optimal_id_J3] = DP_TW_one_channel_U_Opt(s_t,s_w, ...
-    v_Mthruster,Qt,Qw,R, h, T_final, J3);
+    v_Mthruster,Qt,Qw,R, h, T_final, J3); %#ok<ASGLU>
 save(filename, 'M_gI_J3' , 'M_U_Optimal_id_J3', '-append')
 clear('M_gI_J3' , 'M_U_Optimal_id_J3')
 

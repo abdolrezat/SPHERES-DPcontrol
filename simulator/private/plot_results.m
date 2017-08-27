@@ -1,33 +1,33 @@
 function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt, Force_Moment_log_req)
 %% compare required Force-Moments vs actual Force-Moments
-%
-figure
-plot(T_ode45, Force_Moment_log(:,1))
-hold on
-plot(T_ode45, Force_Moment_log_req(:,1))
-title('Fx')
-legend('actual','required')
-%
-figure
-plot(T_ode45, Force_Moment_log(:,4))
-hold on
-plot(T_ode45, Force_Moment_log_req(:,4))
-title('Mx')
-legend('actual','required')
-%
-figure
-plot(T_ode45, Force_Moment_log(:,2))
-hold on
-plot(T_ode45, Force_Moment_log_req(:,2))
-title('Fy')
-legend('actual','required')
-%
-figure
-plot(T_ode45, Force_Moment_log(:,5))
-hold on
-plot(T_ode45, Force_Moment_log_req(:,5))
-title('My')
-legend('actual','required')
+% %
+% figure
+% plot(T_ode45, Force_Moment_log(:,1))
+% hold on
+% plot(T_ode45, Force_Moment_log_req(:,1))
+% title('Fx')
+% legend('actual','required')
+% %
+% figure
+% plot(T_ode45, Force_Moment_log(:,4))
+% hold on
+% plot(T_ode45, Force_Moment_log_req(:,4))
+% title('Mx')
+% legend('actual','required')
+% %
+% figure
+% plot(T_ode45, Force_Moment_log(:,2))
+% hold on
+% plot(T_ode45, Force_Moment_log_req(:,2))
+% title('Fy')
+% legend('actual','required')
+% %
+% figure
+% plot(T_ode45, Force_Moment_log(:,5))
+% hold on
+% plot(T_ode45, Force_Moment_log_req(:,5))
+% title('My')
+% legend('actual','required')
 
         %
         
@@ -173,24 +173,30 @@ legend('actual','required')
         % plot states - pos
         pos_fig_x = [543.4000   49.0000  518.4000  326.4000];
         figure('Name','states - position','Position',pos_fig_x)
-        
+        title('states - position (m)')
         plot(T_ode45, X_ode45(:,1))
         hold on
         plot(T_ode45, X_ode45(:,2))
         plot(T_ode45, X_ode45(:,3))
         grid on
         legend('x1','x2','x3')
+        xlabel('time (s)')
+        ylabel('position (m)')
         
         % plot states - v
         pos_fig_v = [954.6000  446.6000  518.4000  326.4000];
         figure('Name','states - velocity','Position',pos_fig_v)
-        
+        title('states - velocity (m/s)')
+
         plot(T_ode45, X_ode45(:,4))
         hold on
         plot(T_ode45, X_ode45(:,5))
         plot(T_ode45, X_ode45(:,6))
         grid on
         legend('v1','v2','v3')
+        
+        xlabel('time (s)')
+        ylabel('velocity (m/s)')
         
          % plot states - angles
         pos_fig_a = [973.0000  218.6000  518.4000  326.4000];
@@ -208,7 +214,8 @@ legend('actual','required')
         % plot states - q
         pos_fig_q = [973.0000  218.6000  518.4000  326.4000];
         figure('Name','states - quaternions','Position',pos_fig_q)
-        
+        title('states - quaternions')
+
         plot(T_ode45, X_ode45(:,7))
         hold on
         plot(T_ode45, X_ode45(:,8))
@@ -229,4 +236,8 @@ legend('actual','required')
         plot(T_ode45, X_ode45(:,13)*180/pi)
         grid on
         legend('w1','w2','w3')
+        
+        xlabel('time (s)')
+        ylabel('rotational speed (deg/s)')
+        
 end

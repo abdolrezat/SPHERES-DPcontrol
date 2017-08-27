@@ -28,7 +28,8 @@ classdef Simulator_CW < handle
         M_controller_J1
         M_controller_J2
         M_controller_J3
-        controller_Interpmode %controller interpolation mode, 'nearest' for thruster on-off firings only
+        controller_InterpmodeF %controller interpolation mode, 'nearest' for thruster on-off firings only
+        controller_InterpmodeM
         thruster_allocation_mode % 'PWPF', 'Schmitt' (for schmitt trigger only) and 'none' for continuous force application
         schmitt_trigger1
         schmitt_trigger2
@@ -54,7 +55,8 @@ classdef Simulator_CW < handle
                 this.h = simopts.h;
                 this.defaultX0 = simopts.defaultX0;
                 this.mode = simopts.mode;
-                this.controller_Interpmode = simopts.controller_Interpmode;
+                this.controller_InterpmodeF = simopts.controller_InterpmodeF;
+                this.controller_InterpmodeM = simopts.controller_InterpmodeM;
                 this.thruster_allocation_mode = simopts.thruster_allocation_mode;
                 this.faulty_thruster_index = simopts.faulty_thruster_index;
             end
@@ -104,26 +106,30 @@ classdef Simulator_CW < handle
             %6x PWPF objects
             this.PWPF1 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
             this.PWPF2 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
             this.PWPF3 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
             this.PWPF4 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
             this.PWPF5 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
             this.PWPF6 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.schmitt.H_feed);
+                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
+            % control allocation function to thrusters, from all combinations of Forces
+            % and Moments that can be generated with the operating thrusters
+            
+            
         end
         
         
-        function f = get_thruster_on_off_optimal(obj,M_req, a_Body_req)
+        function f = get_thruster_on_off_optimal(obj,M_req, a_Body_req, X_stage)
             % gets the optimal on/off state of thrusters by assigning
             % thruster forces properly to make up accelerations in the Body
             % frame of reference
@@ -146,31 +152,65 @@ classdef Simulator_CW < handle
             f_pairs_req = invA*B;
             
             switch( lower(obj.thruster_allocation_mode) )
+                case 'manual allocation'
+                    [f0,f1,f6,f7] = manual_allocation_logic(B(1),B(5), X_stage(1), obj.Thruster_max_F);
+                    [f2,f3,f8,f9] = manual_allocation_logic(B(2),B(6), X_stage(2), obj.Thruster_max_F);
+                    [f4,f5,f10,f11] = manual_allocation_logic(B(3),B(4), X_stage(3), obj.Thruster_max_F);
+                    f = [f0;f1;f2;f3;f4;f5;f6;f7;f8;f9;f10;f11];
+                    
+                case 'testfault'
+                    
+                    [f0,f1,f6,f7] = manual_allocation_logic_fault_one(B(1),B(5), X_stage(1), X_stage(12), obj.Thruster_max_F,0);
+                    [f2,f3,f8,f9] = manual_allocation_logic(B(2),B(6), X_stage(2), obj.Thruster_max_F);
+                    [f4,f5,f10,f11] = manual_allocation_logic(B(3),B(4), X_stage(3), obj.Thruster_max_F);
+                    f = [f0;f1;f2;f3;f4;f5;f6;f7;f8;f9;f10;f11];
+                    
                 case 'pwpf'
                     % Single Thruster Allocation in each pair
                     f_pairs = PWPF_allpairs(obj,f_pairs_req);
+                    for i=1:6
+                        if(f_pairs(i) < 0)
+                            f(i+6) = -f_pairs(i);
+                        else
+                            f(i) = f_pairs(i);
+                        end
+                    end
+                    
+                    if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
+                        f(obj.faulty_thruster_index +1) = 0;
+                    end
                     
                 case 'schmitt'
                     f_pairs = schmitt_allpairs(obj,f_pairs_req);
                     
+                    for i=1:6
+                        if(f_pairs(i) < 0)
+                            f(i+6) = -f_pairs(i);
+                        else
+                            f(i) = f_pairs(i);
+                        end
+                    end
+                    if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
+                        f(obj.faulty_thruster_index +1) = 0;
+                    end
+                    
                 case 'none'
                     % debug code block
                     f_pairs = f_pairs_req; %cancels out schmitt trigger
+                    
+                    for i=1:6
+                        if(f_pairs(i) < 0)
+                            f(i+6) = -f_pairs(i);
+                        else
+                            f(i) = f_pairs(i);
+                        end
+                    end
+                    if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
+                        f(obj.faulty_thruster_index +1) = 0;
+                    end
                     %
                 otherwise
                     error('unknown allocation method')
-            end
-            
-            for i=1:6
-                if(f_pairs(i) < 0)
-                    f(i+6) = -f_pairs(i);
-                else
-                    f(i) = f_pairs(i);
-                end
-            end
-            
-            if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
-                f(obj.faulty_thruster_index +1) = 0;
             end
             
         end
@@ -220,7 +260,6 @@ classdef Simulator_CW < handle
                 %determine F_Opt each Thruster
                 X_stage = X_ode45(k_stage,:);
                 q_stage = X_stage(7:10);
-                
                 % pre-computations
                 [R,V] = update_RV_target(R0, V0, tspan(k_stage));
                 norm_R = (R*R')^.5; %norm R
@@ -238,9 +277,11 @@ classdef Simulator_CW < handle
                 rotM_ECI2body = ECI2body(obj,q_stage);
                 % required directional accelerations in Body frame of reference
                 a_Body_req = rotM_ECI2body*rotM_RSW2ECI*  a_req;
-                %                 M_Body_req = rotM_ECI2body*rotM_RSW2ECI*  U_M_req;
                 M_Body_req = U_M_req;
-                f_thruster = get_thruster_on_off_optimal(obj, M_Body_req, a_Body_req);
+                % debugging block of code for a certain time
+%                 if(tspan(k_stage) == 60.615) keyboard; end
+                %
+                f_thruster = get_thruster_on_off_optimal(obj, M_Body_req, a_Body_req, X_stage);
                 % accelerations from thruster forces1
                 [U_M, a_x, a_y, a_z] = to_Moments_Forces(obj,...
                     f_thruster, rotM_RSW2ECI, rotM_ECI2body);
@@ -259,6 +300,7 @@ classdef Simulator_CW < handle
                 Force_Moment_log_req(k_stage,:) = [a_req;U_M_req];
                 % use RK4 instead of ode45 for more speed and no less
                 % accuracy
+%                 X_temp = ode_1(obj, @ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
                 X_temp = ode_RK4(obj, @ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
 %                 [~,X_temp] = ode23(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
 %                 [~,X_temp] = ode45(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
@@ -385,14 +427,14 @@ classdef Simulator_CW < handle
             path_ = strjoin(path_(1:end-1),'\');
             controller = load(strcat(path_,'\..\generate_controller\controller\',controller_name));
             obj.F_controller = griddedInterpolant(controller.F_gI,...
-                single(controller.v_Fthruster(controller.F_U_Optimal_id)), obj.controller_Interpmode,'nearest');
+                single(controller.v_Fthruster(controller.F_U_Optimal_id)), obj.controller_InterpmodeF,'nearest');
             
             obj.M_controller_J1 = griddedInterpolant(controller.M_gI_J1,...
-                single(controller.v_Mthruster(controller.M_U_Optimal_id_J1)), obj.controller_Interpmode,'nearest');
+                single(controller.v_Mthruster(controller.M_U_Optimal_id_J1)), obj.controller_InterpmodeM,'nearest');
             obj.M_controller_J2 = griddedInterpolant(controller.M_gI_J2,...
-                single(controller.v_Mthruster(controller.M_U_Optimal_id_J2)), obj.controller_Interpmode,'nearest');
+                single(controller.v_Mthruster(controller.M_U_Optimal_id_J2)), obj.controller_InterpmodeM,'nearest');
             obj.M_controller_J3 = griddedInterpolant(controller.M_gI_J3,...
-                single(controller.v_Mthruster(controller.M_U_Optimal_id_J3)), obj.controller_Interpmode,'nearest');
+                single(controller.v_Mthruster(controller.M_U_Optimal_id_J3)), obj.controller_InterpmodeM,'nearest');
         end
         
         function [M, a] = Opt_Force_Moments(obj, Xin)
@@ -424,6 +466,19 @@ classdef Simulator_CW < handle
             X2 = x + h_t*(k1 + 2*k2 + 2*k3 + k4)/6;
             X2 = X2';
         end
+        
+          function X2 = ode_1(~, ode_fun, t_vector, x)
+            % Runge-Kutta - 4th order
+            % h = dt;
+            t1 = t_vector(1);
+            h_t = t_vector(2) - t1;
+            x = x';
+            k1 = ode_fun(t1, x);
+            X2 = x + h_t*k1;
+            X2 = X2';
+          end
+        
+          
     end
     
 end
