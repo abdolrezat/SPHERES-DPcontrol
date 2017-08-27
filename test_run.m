@@ -5,7 +5,7 @@ addpath(path,genpath('generate_controller'))
 addpath(path,'simulator')
 %% generate controller
 %controller variables
-    controller.name = 'controller_attpositionf5'; %name of controller, will be saved under /controller directory
+    controller.name = 'controller_attpositionf6'; %name of controller, will be saved under /controller directory
     controller.Tf = 4.5; % Tfinal for Force controller run
     controller.Tm = 2; % Tfinal for Moment controller run
     %time variables
@@ -27,7 +27,7 @@ addpath(path,'simulator')
     Thruster_dist = 9.65E-2; % (meters)
     Thruster_max_M = Thruster_max_F*Thruster_dist;
     controller.lim_F = 2*[-Thruster_max_F Thruster_max_F];
-    controller.lim_M = 2*[-Thruster_max_M Thruster_max_M];
+    controller.lim_M = [-Thruster_max_M Thruster_max_M];
     
     % mesh generation , mesh resolutions
     controller.n_mesh_x = 300;
@@ -36,7 +36,7 @@ addpath(path,'simulator')
     controller.n_mesh_w = 800;
     
     controller.n_mesh_F = 20;
-    controller.n_mesh_M = 20;
+    controller.n_mesh_M = 3;
 % generate the controller
 generate_DP_ForceMoment_controller(controller)
     %use this option to visualise the controller space convergance
@@ -53,7 +53,7 @@ test_surface(controller.name)
     simulator_opts.faulty_thruster_index = [7]; %index of faulty thruster(s) #0-#11
     simulator_opts.current_controller = controller.name;
     simulator_opts.controller_InterpmodeF = 'linear'; %interpolation mehod of F controller output
-    simulator_opts.controller_InterpmodeM = 'linear'; %interpolation mehod of M controller output
+    simulator_opts.controller_InterpmodeM = 'nearest'; %interpolation mehod of M controller output
     simulator_opts.T_final = 300; %simulation Tfinal
     simulator_opts.h = 0.005; %simulation fixed time steps
     %initial state
@@ -71,7 +71,7 @@ test_surface(controller.name)
     
     simulator_opts.schmitt.Uout = Thruster_max_F;
     simulator_opts.schmitt.Uon = 0.6*simulator_opts.schmitt.Uout;
-    simulator_opts.schmitt.Uoff = 0.8*simulator_opts.schmitt.Uon;
+    simulator_opts.schmitt.Uoff = 0.7*simulator_opts.schmitt.Uon;
 % create and run the simulator
 SC = Simulator_CW(simulator_opts);
 SC.get_optimal_path()
