@@ -31,6 +31,7 @@ classdef Simulator_CW < handle
         controller_InterpmodeF %controller interpolation mode, 'nearest' for thruster on-off firings only
         controller_InterpmodeM
         thruster_allocation_mode % 'PWPF', 'Schmitt' (for schmitt trigger only) and 'none' for continuous force application
+        active_set
         schmitt_trigger1
         schmitt_trigger2
         schmitt_trigger3
@@ -59,6 +60,11 @@ classdef Simulator_CW < handle
                 this.controller_InterpmodeM = simopts.controller_InterpmodeM;
                 this.thruster_allocation_mode = simopts.thruster_allocation_mode;
                 this.faulty_thruster_index = simopts.faulty_thruster_index;
+                this.active_set.Weighting_Matrix = simopts.active_set.Weighting_Matrix;
+            end
+            
+            if(strcmp(this.mode,'normal') == 1)
+                this.faulty_thruster_index = [];
             end
             
             this.Mass = 4.16;
@@ -87,8 +93,8 @@ classdef Simulator_CW < handle
             end
             
             %Thruster Forces
-            this.Thruster_max_F = 0.13; % (N)
-            this.T_dist = 9.65E-2; % (meters)
+            this.Thruster_max_F = simopts.Thruster_max_F; % (N)
+            this.T_dist = simopts.Thruster_dist; % (meters)
             
             %6x schmitt trigger objects
             this.schmitt_trigger1 = Schmitt_trigger_c(...
@@ -152,6 +158,30 @@ classdef Simulator_CW < handle
             f_pairs_req = invA*B;
             
             switch( lower(obj.thruster_allocation_mode) )
+                case 'active set discrete'
+                    id_fault_channel_1 = obj.faulty_thruster_index(...
+                        ismember(obj.faulty_thruster_index, [0 1 6 7]));
+                    id_fault_channel_2 = obj.faulty_thruster_index(...
+                        ismember(obj.faulty_thruster_index, [2 3 8 9])) - 2;
+                    id_fault_channel_3 = obj.faulty_thruster_index(...
+                        ismember(obj.faulty_thruster_index, [4 5 10 11])) - 4;
+                    
+                    [f0_comb,f1_comb,f6_comb,f7_comb] = ...
+                        all_feasible_thruster_u(id_fault_channel_1);
+                    [f2_comb,f3_comb,f8_comb,f9_comb] = ...
+                        all_feasible_thruster_u(id_fault_channel_2);
+                    [f4_comb,f5_comb,f10_comb,f11_comb] = ...
+                        all_feasible_thruster_u(id_fault_channel_3);
+                    
+                    [f0,f1,f6,f7] = asd_allocation_logic(obj, B(1), B(5), ...
+                        f0_comb,f1_comb,f6_comb,f7_comb);
+                    [f2,f3,f8,f9] = asd_allocation_logic(obj, B(2), B(6), ...
+                        f2_comb,f3_comb,f8_comb,f9_comb);
+                    [f4,f5,f10,f11] = asd_allocation_logic(obj, B(3), B(4), ...
+                        f4_comb,f5_comb,f10_comb,f11_comb);
+                    
+                    f = [f0;f1;f2;f3;f4;f5;f6;f7;f8;f9;f10;f11];
+                    
                 case 'manual allocation'
                     [f0,f1,f6,f7] = manual_allocation_logic(B(1),B(5), X_stage(1), obj.Thruster_max_F);
                     [f2,f3,f8,f9] = manual_allocation_logic(B(2),B(6), X_stage(2), obj.Thruster_max_F);
@@ -449,6 +479,33 @@ classdef Simulator_CW < handle
             M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
             M(2) = obj.M_controller_J2( 2*asin(Xin(8)) , Xin(12) ); %where X(11:13) represent rotational speeds
             M(3) = obj.M_controller_J3( 2*asin(Xin(9)) , Xin(13) ); %where X(11:13) represent rotational speeds
+            
+        end
+        
+        function [f0,f1,f6,f7] = asd_allocation_logic(obj, Freq, Mreq, ...
+                f0_comb,f1_comb,f6_comb,f7_comb)
+            
+            L = length(f0_comb);
+            B = [1,1,-1,-1;...
+                1,-1,-1,1];
+            all_evaluations = zeros(1,L);
+            
+            for ii=1:L
+                u = [f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F;
+                e = (B*u - [Freq; Mreq]);
+                all_evaluations(ii) = e' * obj.active_set.Weighting_Matrix * e;
+            end
+            
+            [best_evaluation, best_evaluation_id] = min(all_evaluations, [], 2);
+            
+%             if ( length(all_evaluations((all_evaluations - best_evaluation) == 0)) > 1)
+%                 keyboard;
+%             end
+            
+            f0 = f0_comb(best_evaluation_id)*obj.Thruster_max_F;
+            f1 = f1_comb(best_evaluation_id)*obj.Thruster_max_F;
+            f6 = f6_comb(best_evaluation_id)*obj.Thruster_max_F;
+            f7 = f7_comb(best_evaluation_id)*obj.Thruster_max_F;
             
         end
         
