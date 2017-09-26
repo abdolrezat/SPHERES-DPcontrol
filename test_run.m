@@ -5,7 +5,7 @@ addpath(path,genpath('generate_controller'))
 addpath(path,'simulator')
 
 Thruster_max_F = 0.13; % (N)
-Thruster_dist = (9.65E-2)/2; % (meters)
+Thruster_dist = (9.65E-2); % (meters)
 %% generate controller
 %controller variables
     controller.name = 'controller_attpositionf9'; %name of controller, will be saved under /controller directory
@@ -51,7 +51,7 @@ test_surface(controller.name)
 %simulator variables
     simulator_opts.mode = 'normal';   % 'normal' for all thrusters operative or 'fault' for one thruster inoperative
     simulator_opts.thruster_allocation_mode = 'active set discrete'; % {'active set discrete', 'PWPF', 'Schmitt', 'none'}
-    simulator_opts.faulty_thruster_index = [0]; %index of faulty thruster(s) #0-#11
+    simulator_opts.faulty_thruster_index = [0 1 9]; %index of faulty thruster(s) #0-#11
     simulator_opts.current_controller = controller.name;
     simulator_opts.controller_InterpmodeF = 'linear'; %interpolation mehod of F controller output
     simulator_opts.controller_InterpmodeM = 'linear'; %interpolation mehod of M controller output
