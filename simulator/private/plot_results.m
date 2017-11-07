@@ -1,36 +1,27 @@
 function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt, Force_Moment_log_req)
-%% compare required Force-Moments vs actual Force-Moments
-% %
-% figure
-% plot(T_ode45, Force_Moment_log(:,1))
-% hold on
-% plot(T_ode45, Force_Moment_log_req(:,1))
-% title('Fx')
-% legend('actual','required')
-% %
-% figure
-% plot(T_ode45, Force_Moment_log(:,4))
-% hold on
-% plot(T_ode45, Force_Moment_log_req(:,4))
-% title('Mx')
-% legend('actual','required')
-% %
-% figure
-% plot(T_ode45, Force_Moment_log(:,2))
-% hold on
-% plot(T_ode45, Force_Moment_log_req(:,2))
-% title('Fy')
-% legend('actual','required')
-% %
-% figure
-% plot(T_ode45, Force_Moment_log(:,5))
-% hold on
-% plot(T_ode45, Force_Moment_log_req(:,5))
-% title('My')
-% legend('actual','required')
+%% calculate fuel consumption
+FC_history = cumsum(F_Th_Opt)/max(F_Th_Opt(:));
+FC_total = sum(FC_history(end,:));
+fprintf('Total Thruster-On Time (Fuel Consumption) = %.3f seconds\n', FC_total*0.005)
 
-        %
-        
+%% plot path over control surface
+x1 = X_ode45(:,1);
+v1 = X_ode45(:,4);
+F1 = Force_Moment_log(:,1)*obj.Mass;
+[theta1,theta2,theta3] = quat2angle(X_ode45(:,10:-1:7));
+t3 = theta3*180/pi;
+w3 = X_ode45(:,13);
+M3 = Force_Moment_log(:,6);
+
+[axF,axM] = test_surface(obj.current_controller);
+axes(axF.Parent)
+% colormap('winter')
+hold on, plot3(x1,v1,F1,'m:', 'LineWidth',2.0);
+
+axes(axM.Parent)
+% colormap('winter')
+hold on, plot3(t3,w3,M3,'m:', 'LineWidth',2.0);
+
 %% plot Thruster Firings
         ylim_thr = [-.15 .15];
         pos_fig_thruster = [7.4000   61.8000  538.4000  712.8000];
@@ -40,7 +31,7 @@ function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt, Force_
         title('#0 (x)')
         grid on
         ylim(ylim_thr)
-        %% xlim([-0.05 Inf])
+        % xlim([-0.05 Inf])
         
         subplot(4,3,2)
         plot(T_ode45, F_Th_Opt(:,3))
@@ -109,7 +100,7 @@ function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt, Force_
         ylim(ylim_thr)
   
 % 
-        %plot Forces and Moments
+        %plot Forces and Moments, compare required Force-Moments vs actual Force-Moments
         ylim_F = [-0.3 0.3]/obj.Mass;
         ylim_M = [-0.3 0.3]*obj.T_dist;
         pos_fig_FM = [547.4000  449.8000  518.4000  326.4000];
@@ -202,8 +193,6 @@ function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt, Force_
         pos_fig_a = [973.0000  218.6000  518.4000  326.4000];
         figure('Name','states - angles','Position',pos_fig_a)
         
-        [theta3,theta2,theta1] = quat2angle(X_ode45(:,10:-1:7));
-
         plot(T_ode45, theta1*180/pi)
         hold on
         plot(T_ode45, theta2*180/pi)

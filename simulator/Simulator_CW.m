@@ -8,9 +8,6 @@ classdef Simulator_CW < handle
         N % number of stages
         Mass % Mass
         InertiaM % Moment of Inertia Matrix
-        J1 % element 1 of Inertia Matrix
-        J2 % ...
-        J3 % ..
         
         T_final
         h
@@ -78,9 +75,6 @@ classdef Simulator_CW < handle
                 inertia(4,1)  inertia(2,1)  inertia(6,1);...
                 inertia(5,1)  inertia(6,1)  inertia(3,1)];
             
-            this.J1 = this.InertiaM(1);
-            this.J2 = this.InertiaM(5);
-            this.J3 = this.InertiaM(9);
             
             if(rem(this.T_final,this.h) == 0)
                 this.N_stage = this.T_final/this.h;
