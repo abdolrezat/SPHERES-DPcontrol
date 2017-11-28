@@ -1,7 +1,7 @@
 # SPHERES - Dynamic Programming Control ![MATLABver](https://img.shields.io/badge/MATLAB-v9.1%2B-orange.svg) ![MATLAB16b](https://img.shields.io/badge/MATLAB-R2016b-yellow.svg) ![MATLAB17](https://img.shields.io/badge/MATLAB-R2017-green.svg) 
 
 This repository contains code for simulation and control of a *[SPHERES](https://www.nasa.gov/spheres/home
-)* satellite in formation with another satellite, using a vectorized Dynamic Programming approach. Made available publicly, mainly to reproduce the work of a article that is currently in progress.
+)* satellite in formation with another satellite, using a vectorized Dynamic Programming approach. Made available publicly, mainly to reproduce the work of a article that is currently in progress. Only works with MATLAB version 2016b and above.
 
 ## How it works
 <p align="center"><img width=43% src="https://raw.githubusercontent.com/abdolrezat/SPHERES-DPcontrol/master/figures/reference frame.png"></p>
