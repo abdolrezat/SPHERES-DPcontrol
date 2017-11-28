@@ -63,7 +63,7 @@ After you run the scripts, you can see how states have changed and actions taken
 
 ### Simulation with Thrusters Failed
 
-An example of how the satellite is controlled under thruster failures is shown here. The faulty thrusters are both in x-direction and back to back (thrusters #0 and #6). The control allocation scheme is PWPF, and the initial offset is 30 in x-direction only. What happens in here is that the satellite performs two maneuvers, first to gain some velocity and then to lower it's kinetic energy when it has reached it's destination.
+An example of how the satellite is controlled under thruster failures is shown here. The faulty thrusters are both in x-direction and back to back (thrusters #0 and #6), such that the satellite cannot relocate in x-direction without getting rotational speeds. The control allocation scheme is PWPF, and the initial offset is 30 in x-direction only. What happens in here is that the satellite performs two maneuvers, first to gain some velocity and then to lower it's kinetic energy when it has reached it's destination.
 
 Position             |  Velocity
 :-------------------------:|:-------------------------:
@@ -78,7 +78,7 @@ How the thrusters reacted in the above scenario is shown in figure below (thrust
 
 ![](https://raw.githubusercontent.com/abdolrezat/SPHERES-DPcontrol/master/figures/position%20attitude%20control/pwpf%20linear%20-%20linear%20-%20dual%20fault%2006/Thrusters.png)
 
-These figures show something amazing: the satellite can't go straight in the x-direction without gaining torque, so it rotates itself and uses the thrusters in the other directions (now with a component in the x-direction) to gain speed. Once it gains some velocity, it continues its way to reach the approximate destination and then performs the same maneuver **in reverse** to stop!
+These figures show something amazing: the satellite can't go straight in the x-direction without gaining torque, so it rotates itself and uses the thrusters in the other directions (now with a component in the x-direction) to gain speed. Once it gains some velocity, it continues its way to reach the approximate destination and then performs the same maneuver **in reverse** to stop! These maneuvers were not in any way hard-coded into the simulator, so the emergence of such solution is astonishing.
 
 ## Acknowledgments
 
