@@ -33,12 +33,6 @@ closedist_normal_PD_controller_activeset
 
 - Note: PD means *Proportional-Differential*, not to be confused with DP (Dynamic Programming), see inside each script for initial conditions and configurations. 
 
-### Results
-
-After you run the scripts, you can see how states have changed and actions taken during the entire simulation. For the example above, fuel consumption using Dynamic Programming is **23% less than** PD control in only 0.6 meters of displacement. The Kp and Kd parameters for the PD controller are chosen so that both trajectories have similar settling times. The position plots in z-direction are as follows:
-
-<p align="center"><img width=90% src="https://raw.githubusercontent.com/abdolrezat/SPHERES-DPcontrol/master/figures/Xdiff.png"></p>
-
 
 ### Control Allocation Schemes
 
@@ -57,6 +51,34 @@ In each channel, when all 4 thrusters are operational, 16 (=2^4) total combinati
 
 Additionally, this allocation method supports the scenario of faulty thruster(s). If the IDs of the faulty thrusters are determined, the combinations are automatically reduced to those in which the faulty thrusters are always "off".
 
+
+## Results
+
+### Fuel consumption: Dynamic Programming vs. PD controller
+
+After you run the scripts, you can see how states have changed and actions taken during the entire simulation. For the example above, fuel consumption using Dynamic Programming is **23% less than** PD control in only 0.6 meters of displacement. The Kp and Kd parameters for the PD controller are chosen so that both trajectories have similar settling times. The position plots in z-direction are as follows:
+
+<p align="center"><img width=90% src="https://raw.githubusercontent.com/abdolrezat/SPHERES-DPcontrol/master/figures/Xdiff.png"></p>
+
+
+### Simulation with Thrusters Failed
+
+An example of how the satellite is controlled under thruster failures is shown here. The faulty thrusters are both in x-direction and back to back (thrusters #0 and #6). The control allocation scheme is PWPF, and the initial offset is 30 in x-direction only. What happens in here is that the satellite performs two maneuvers, first to gain some velocity and then to lower it's kinetic energy when it has reached it's destination.
+
+Position             |  Velocity
+:-------------------------:|:-------------------------:
+![](https://raw.githubusercontent.com/abdolrezat/SPHERES-DPcontrol/master/figures/position%20attitude%20control/pwpf%20linear%20-%20linear%20-%20dual%20fault%2006/states-%20x.png)  |  ![](https://raw.githubusercontent.com/abdolrezat/SPHERES-DPcontrol/master/figures/position%20attitude%20control/pwpf%20linear%20-%20linear%20-%20dual%20fault%2006/states-%20v.png)
+
+
+Quaternions             |  Angular Velocities
+:-------------------------:|:-------------------------:
+![](https://raw.githubusercontent.com/abdolrezat/SPHERES-DPcontrol/master/figures/position%20attitude%20control/pwpf%20linear%20-%20linear%20-%20dual%20fault%2006/states-%20q.png)  |  ![](https://raw.githubusercontent.com/abdolrezat/SPHERES-DPcontrol/master/figures/position%20attitude%20control/pwpf%20linear%20-%20linear%20-%20dual%20fault%2006/states-%20w.png)
+
+How the thrusters reacted in the above scenario is shown in figure below (thrusters #0 and #6 are faulty and therefore always off):
+
+![](https://raw.githubusercontent.com/abdolrezat/SPHERES-DPcontrol/master/figures/position%20attitude%20control/pwpf%20linear%20-%20linear%20-%20dual%20fault%2006/Thrusters.png)
+
+These figures show something amazing: the satellite can't go straight in the x-direction without gaining torque, so it rotates itself and uses the thrusters in the other directions (now with a component in the x-direction) to gain speed. Once it gains some velocity, it continues its way to reach the approximate destination and then performs the same maneuver **in reverse** to stop!
 
 ## Acknowledgments
 
