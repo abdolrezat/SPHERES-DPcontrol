@@ -82,8 +82,8 @@ These figures show something amazing: the satellite can't go straight in the x-d
 
 ## Acknowledgments
 
-This work wouldn't have been possible without exceptional support and guidance provided by [Dr. Nima Assadian](http://ae.sharif.edu/~web/homepage.php?username=assadian) of the Aerospace Engineering Department at Sharif University of Technology, who was the supervisor of the project.
+This code wouldn't have been possible without exceptional support and guidance provided by [Dr. Nima Assadian](http://ae.sharif.edu/~web/homepage.php?username=assadian) of the Aerospace Engineering Department at Sharif University of Technology, who was the supervisor of the project. 
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE.md) - Author: [**Abdolreza Taheri**](https://www.researchgate.net/profile/Abdolreza_Taheri)
+This project is licensed under the [MIT License](LICENSE.md) - Authors: [**Abdolreza Taheri**](https://www.researchgate.net/profile/Abdolreza_Taheri) & [**Dr. Nima Assadian**](http://ae.sharif.edu/~web/homepage.php?username=assadian)
