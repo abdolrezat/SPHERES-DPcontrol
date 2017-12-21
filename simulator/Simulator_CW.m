@@ -42,8 +42,16 @@ classdef Simulator_CW < handle
         PWPF4
         PWPF5
         PWPF6
-        
+        thrust_combs %used for one time calculation of combination of thruster firings
         history %structure to save all states and actions after run
+        mu
+        norm_R %target sat params
+        RdotV
+        H
+        U_M %control actions
+        a_x
+        a_y
+        a_z
     end
     
     methods
@@ -138,8 +146,22 @@ classdef Simulator_CW < handle
                 simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
             % control allocation function to thrusters, from all combinations of Forces
             % and Moments that can be generated with the operating thrusters
+            id_fault_channel_1 = this.faulty_thruster_index(...
+                ismember(this.faulty_thruster_index, [0 1 6 7]));
+            id_fault_channel_2 = this.faulty_thruster_index(...
+                ismember(this.faulty_thruster_index, [2 3 8 9])) - 2;
+            id_fault_channel_3 = this.faulty_thruster_index(...
+                ismember(this.faulty_thruster_index, [4 5 10 11])) - 4;
             
-            
+            [this.thrust_combs.f0_comb,this.thrust_combs.f1_comb,...
+                this.thrust_combs.f6_comb,this.thrust_combs.f7_comb] = ...
+                all_feasible_thruster_u(id_fault_channel_1);
+            [this.thrust_combs.f2_comb,this.thrust_combs.f3_comb,...
+                this.thrust_combs.f8_comb,this.thrust_combs.f9_comb] = ...
+                all_feasible_thruster_u(id_fault_channel_2);
+            [this.thrust_combs.f4_comb,this.thrust_combs.f5_comb,...
+                this.thrust_combs.f10_comb,this.thrust_combs.f11_comb] = ...
+                all_feasible_thruster_u(id_fault_channel_3);
         end
         
         
@@ -167,26 +189,15 @@ classdef Simulator_CW < handle
             
             switch( lower(obj.thruster_allocation_mode) )
                 case 'active set discrete'
-                    id_fault_channel_1 = obj.faulty_thruster_index(...
-                        ismember(obj.faulty_thruster_index, [0 1 6 7]));
-                    id_fault_channel_2 = obj.faulty_thruster_index(...
-                        ismember(obj.faulty_thruster_index, [2 3 8 9])) - 2;
-                    id_fault_channel_3 = obj.faulty_thruster_index(...
-                        ismember(obj.faulty_thruster_index, [4 5 10 11])) - 4;
-                    
-                    [f0_comb,f1_comb,f6_comb,f7_comb] = ...
-                        all_feasible_thruster_u(id_fault_channel_1);
-                    [f2_comb,f3_comb,f8_comb,f9_comb] = ...
-                        all_feasible_thruster_u(id_fault_channel_2);
-                    [f4_comb,f5_comb,f10_comb,f11_comb] = ...
-                        all_feasible_thruster_u(id_fault_channel_3);
-                    
                     [f0,f1,f6,f7] = asd_allocation_logic(obj, B(1), B(5), ...
-                        f0_comb,f1_comb,f6_comb,f7_comb);
+                        obj.thrust_combs.f0_comb,obj.thrust_combs.f1_comb,...
+                        obj.thrust_combs.f6_comb,obj.thrust_combs.f7_comb);
                     [f2,f3,f8,f9] = asd_allocation_logic(obj, B(2), B(6), ...
-                        f2_comb,f3_comb,f8_comb,f9_comb);
+                        obj.thrust_combs.f2_comb,obj.thrust_combs.f3_comb,...
+                        obj.thrust_combs.f8_comb,obj.thrust_combs.f9_comb);
                     [f4,f5,f10,f11] = asd_allocation_logic(obj, B(3), B(4), ...
-                        f4_comb,f5_comb,f10_comb,f11_comb);
+                        obj.thrust_combs.f4_comb,obj.thrust_combs.f5_comb,...
+                        obj.thrust_combs.f10_comb,obj.thrust_combs.f11_comb);
                     
                     f = [f0;f1;f2;f3;f4;f5;f6;f7;f8;f9;f10;f11];
                     
@@ -272,7 +283,7 @@ classdef Simulator_CW < handle
         end
         
         function get_optimal_path(obj)
-            mu = 398600;
+            obj.mu = 398600;
             if nargin == 1
                 %   Prescribed initial state vector of chaser B in the co-moving frame:
                 X0 = obj.defaultX0;
@@ -317,12 +328,12 @@ classdef Simulator_CW < handle
                 q_stage = X_stage(7:10);
                 % pre-computations
                 [R,V] = update_RV_target(R0, V0, tspan(k_stage));
-                norm_R = (R*R')^.5; %norm R
-                RdotV = sum(R.*V); %dot product
+                obj.norm_R = (R*R')^.5; %norm R
+                obj.RdotV = sum(R.*V); %dot product
                 crossRV = [R(2).*V(3)-R(3).*V(2); % cross product of R and V
                     R(3).*V(1)-R(1).*V(3);
                     R(1).*V(2)-R(2).*V(1)];
-                H  = (crossRV'*crossRV)^.5 ; %norm(crossRV);
+                obj.H  = (crossRV'*crossRV)^.5 ; %norm(crossRV);
                 
                 % required (Optimal) moments (U_M) and directional accelerations (a_* |x,y,z|) with
                 % respect to inertial frame
@@ -338,7 +349,7 @@ classdef Simulator_CW < handle
                 %
                 f_thruster = get_thruster_on_off_optimal(obj, M_Body_req, a_Body_req, X_stage);
                 % accelerations from thruster forces1
-                [U_M, a_x, a_y, a_z] = to_Moments_Forces(obj,...
+                [obj.U_M, obj.a_x, obj.a_y, obj.a_z] = to_Moments_Forces(obj,...
                     f_thruster, rotM_RSW2ECI, rotM_ECI2body);
                 %
 %                 %% test environment for controller,
@@ -351,12 +362,12 @@ classdef Simulator_CW < handle
 %                 
                 %log
                 F_Th_Opt(k_stage,:) = f_thruster;
-                Force_Moment_log(k_stage,:) = [a_x, a_y, a_z, U_M'];
+                Force_Moment_log(k_stage,:) = [obj.a_x, obj.a_y, obj.a_z, obj.U_M'];
                 Force_Moment_log_req(k_stage,:) = [a_req;U_M_req];
                 % use RK4 instead of ode45 for more speed and no less
                 % accuracy
 %                 X_temp = ode_1(obj, @ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
-                X_temp = ode_RK4(obj, @ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
+                X_temp = ode_RK4(obj, X_stage);
 %                 [~,X_temp] = ode23(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
 %                 [~,X_temp] = ode45(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
                 X_ode45(k_stage+1,:) = X_temp(end,:);
@@ -367,54 +378,6 @@ classdef Simulator_CW < handle
             obj.history = struct('T_ode45',T_ode45,'Force_Moment_log',Force_Moment_log,...
                 'X_ode45',X_ode45,'F_Th_Opt',F_Th_Opt,'Force_Moment_log_req',Force_Moment_log_req);
             
-            %function declarations
-            function x_dot = ode_eq(~,X1)
-                x_dot = system_dynamics(X1);
-                x_dot = x_dot';
-                function X_dot = system_dynamics(X)
-                    x1 = X(1);
-                    x2 = X(2);
-                    x3 = X(3);
-                    v1 = X(4);
-                    v2 = X(5);
-                    v3 = X(6);
-                    q1 = X(7);
-                    q2 = X(8);
-                    q3 = X(9);
-                    q4 = X(10);
-                    w1 = X(11);
-                    w2 = X(12);
-                    w3 = X(13);
-                    w_vector = X(11:13);
-                    %--- differential equations -------------------------
-                    
-                    % CW-equations
-                    % position - x
-                    X_dot(1) = v1;
-                    X_dot(2) = v2;
-                    X_dot(3) = v3;
-                    
-                    % position - v (a_x,y,z are in RSW frame of reference)
-                    X_dot(4) =  (2*mu/norm_R^3 + H^2/norm_R^4)*x1 - 2*RdotV/norm_R^4*H*x2 + 2*H/norm_R^2*v2 ...
-                        + a_x;
-                    X_dot(5) = -(mu/norm_R^3 - H^2/norm_R^4)*x2 + 2*RdotV/norm_R^4*H*x1 - 2*H/norm_R^2*v1 ...
-                        + a_y;
-                    X_dot(6) = -mu/norm_R^3*x3 ...
-                        + a_z;
-                    
-                    % attitude - q
-                    X_dot(7) = 0.5*(w3.*q2 -w2.*q3 +w1.*q4);
-                    X_dot(8) = 0.5*(-w3.*q1 +w1.*q3 +w2.*q4);
-                    X_dot(9) = 0.5*(w2.*q1 -w1.*q2 +w3.*q4);
-                    X_dot(10) = 0.5*(-w1.*q1 -w2.*q2 -w3.*q3);
-                    
-                    % attitude - w
-                    w_dot = obj.InertiaM\(U_M - cross(w_vector, obj.InertiaM*w_vector));
-                    X_dot(11) = w_dot(1);
-                    X_dot(12) = w_dot(2);
-                    X_dot(13) = w_dot(3);
-                end
-            end
         end
         
         function history = get_optimal_path_history(obj)
@@ -517,10 +480,7 @@ classdef Simulator_CW < handle
             if(~strcmp(obj.controller_params.type,'PID'))
                 % Dynamic Programming Controller
                 % Forces (expressed in body frame of reference)
-                a = zeros(3,1);
-                a(1) = obj.F_controller( Xin(1), Xin(4))/obj.Mass; % X(1:3) represent position and X(4:6) velocities
-                a(2) = obj.F_controller( Xin(2), Xin(5))/obj.Mass;
-                a(3) = obj.F_controller( Xin(3), Xin(6))/obj.Mass;
+                a = (obj.F_controller( Xin(1:3), Xin(4:6))/obj.Mass)'; % X(1:3) represent position and X(4:6) velocities
                 
                 %Moments
                 M = zeros(3,1);
@@ -583,11 +543,14 @@ classdef Simulator_CW < handle
             B = [1,1,-1,-1;...
                 1,-1,-1,1];
             all_evaluations = zeros(1,L);
+            W = obj.active_set.Weighting_Matrix([1;4]);
             
             for ii=1:L
-                u = [f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F;
-                e = (B*u - [Freq; Mreq]);
-                all_evaluations(ii) = e' * obj.active_set.Weighting_Matrix * e;
+                %u = [f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F;
+                %e = (B*u - [Freq; Mreq]);
+                %all_evaluations(ii) = e' * obj.active_set.Weighting_Matrix * e;
+                all_evaluations(1,ii) = sum((B*[f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F ...
+                    - [Freq; Mreq]).^2 .* W);
             end
             
             [best_evaluation, best_evaluation_id] = min(all_evaluations, [], 2); %#ok<ASGLU>
@@ -603,16 +566,65 @@ classdef Simulator_CW < handle
             
         end
         
-        function X2 = ode_RK4(~, ode_fun, t_vector, x)
+        function X_dot = system_dynamics(obj, X)
+            mu_ = obj.mu;
+            norm_R_ = obj.norm_R;
+            H_ = obj.H;
+            RdotV_ = obj.RdotV;
+            
+            x1 = X(1);
+            x2 = X(2);
+            x3 = X(3);
+            v1 = X(4);
+            v2 = X(5);
+            v3 = X(6);
+            q1 = X(7);
+            q2 = X(8);
+            q3 = X(9);
+            q4 = X(10);
+            w1 = X(11);
+            w2 = X(12);
+            w3 = X(13);
+            w_vector = X(11:13);
+            %--- differential equations -------------------------
+            
+            % CW-equations
+            % position - x
+            X_dot = zeros(13,1);
+            X_dot(1) = v1;
+            X_dot(2) = v2;
+            X_dot(3) = v3;
+            
+            % position - v (a_x,y,z are in RSW frame of reference)
+            X_dot(4) =  (2*mu_/norm_R_^3 + H_^2/norm_R_^4)*x1 - 2*RdotV_/norm_R_^4*H_*x2 + 2*H_/norm_R_^2*v2 ...
+                + obj.a_x;
+            X_dot(5) = -(mu_/norm_R_^3 - H_^2/norm_R_^4)*x2 + 2*RdotV_/norm_R_^4*H_*x1 - 2*H_/norm_R_^2*v1 ...
+                + obj.a_y;
+            X_dot(6) = -mu_/norm_R_^3*x3 ...
+                + obj.a_z;
+            
+            % attitude - q
+            X_dot(7) = 0.5*(w3.*q2 -w2.*q3 +w1.*q4);
+            X_dot(8) = 0.5*(-w3.*q1 +w1.*q3 +w2.*q4);
+            X_dot(9) = 0.5*(w2.*q1 -w1.*q2 +w3.*q4);
+            X_dot(10) = 0.5*(-w1.*q1 -w2.*q2 -w3.*q3);
+            
+            % attitude - w
+            w_dot = obj.InertiaM\(obj.U_M - cross(w_vector, obj.InertiaM*w_vector));
+            X_dot(11) = w_dot(1);
+            X_dot(12) = w_dot(2);
+            X_dot(13) = w_dot(3);
+        end
+        
+        function X2 = ode_RK4(obj, x)
             % Runge-Kutta - 4th order
             % h = dt;
-            t1 = t_vector(1);
-            h_t = t_vector(2) - t1;
+            h_t = obj.h;
             x = x';
-            k1 = ode_fun(t1, x);
-            k2 = ode_fun(t1,(x + k1*h_t/2));
-            k3 = ode_fun(t1,(x + k2*h_t/2));
-            k4 = ode_fun(t1,(x + k3*h_t));
+            k1 = system_dynamics(obj, x);
+            k2 = system_dynamics(obj,(x + k1*h_t/2));
+            k3 = system_dynamics(obj,(x + k2*h_t/2));
+            k4 = system_dynamics(obj,(x + k3*h_t));
             
             X2 = x + h_t*(k1 + 2*k2 + 2*k3 + k4)/6;
             X2 = X2';
