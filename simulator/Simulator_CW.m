@@ -21,6 +21,7 @@ classdef Simulator_CW < handle
         
         %controllers
         current_controller %name of the controller mat file
+        controller_params
         F_controller
         M_controller_J1
         M_controller_J2
@@ -41,14 +42,26 @@ classdef Simulator_CW < handle
         PWPF4
         PWPF5
         PWPF6
+        
+        history %structure to save all states and actions after run
     end
     
     methods
-        function this = Simulator_CW(simopts)
+        function this = Simulator_CW(simopts, controller)
             if nargin == 0
                 error('the simulator requires options structure as an input')
             else
-                this.current_controller = simopts.current_controller;
+                try
+                    this.controller_params = controller; %uses options such as Ki
+                catch 
+                    warning('assuming DynamicProgramming controller')
+                    this.controller_params.type = 'DP';
+                end
+                %set (DP) controller name
+                if(~strcmp(this.controller_params.type,'PID'))
+                    this.current_controller = simopts.current_controller;
+                end
+                
                 this.T_final = simopts.T_final;
                 this.h = simopts.h;
                 this.defaultX0 = simopts.defaultX0;
@@ -63,6 +76,7 @@ classdef Simulator_CW < handle
             if(strcmp(this.mode,'normal') == 1)
                 this.faulty_thruster_index = [];
             end
+            
             
             this.Mass = 4.16;
             inertia(1,1) =  0.02836 + 0.00016;
@@ -268,7 +282,24 @@ classdef Simulator_CW < handle
             
             %% set controllers
             %             obj.set_controller('controller_linspace2_70m_70deg.mat');
-            obj.set_controller(obj.current_controller)
+            if(~strcmp(obj.controller_params.type,'PID'))
+                obj.set_controller(obj.current_controller);
+            else
+                %else initialize (P I* D) Integral* errors
+                obj.controller_params.integral_a1 = 0;
+                obj.controller_params.integral_a2 = 0;
+                obj.controller_params.integral_a3 = 0;
+                obj.controller_params.integral_M1 = 0;
+                obj.controller_params.integral_M2 = 0;
+                obj.controller_params.integral_M3 = 0;
+                
+               obj.controller_params.prev_error_a1 = 0;
+               obj.controller_params.prev_error_a2 = 0;
+               obj.controller_params.prev_error_a3 = 0;
+               obj.controller_params.prev_error_M1 = 0;
+               obj.controller_params.prev_error_M2 = 0;
+               obj.controller_params.prev_error_M3 = 0;
+            end
             %%
             
             tspan = 0:obj.h:tf;
@@ -332,8 +363,9 @@ classdef Simulator_CW < handle
             end
             toc
             T_ode45 = tspan(1:end-1)';
-            % plot results
-            plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt, Force_Moment_log_req)
+            %save history
+            obj.history = struct('T_ode45',T_ode45,'Force_Moment_log',Force_Moment_log,...
+                'X_ode45',X_ode45,'F_Th_Opt',F_Th_Opt,'Force_Moment_log_req',Force_Moment_log_req);
             
             %function declarations
             function x_dot = ode_eq(~,X1)
@@ -385,6 +417,25 @@ classdef Simulator_CW < handle
             end
         end
         
+        function history = get_optimal_path_history(obj)
+            %runs the simulator and outputs the history of states and
+            %actions, useful for optimization purposes
+           if isempty(obj.history)
+               get_optimal_path(obj) % runs the simulator to get results, if not done previously
+           end
+           history = obj.history;
+           
+        end
+        
+        function plot_optimal_path(obj)
+           if isempty(obj.history)
+               get_optimal_path(obj) % runs the simulator to get results, if not done previously
+           end
+            % plot results
+            plot_results(obj)
+            % print response information (e.g. settling time & rise time) 
+            x1_info = stepinfo(obj.history.X_ode45(:,1),obj.history.T_ode45,0)
+        end
         
         function [U_M, a_x, a_y, a_z] = to_Moments_Forces(obj,f_thruster,rotM_RSW2ECI, rotM_ECI2body)
             f0 = f_thruster(1);
@@ -462,17 +513,66 @@ classdef Simulator_CW < handle
         end
         
         function [M, a] = Opt_Force_Moments(obj, Xin)
-            % Forces (expressed in body frame of reference)
-            a = zeros(3,1);
-            a(1) = obj.F_controller( Xin(1), Xin(4))/obj.Mass; % X(1:3) represent position and X(4:6) velocities
-            a(2) = obj.F_controller( Xin(2), Xin(5))/obj.Mass;
-            a(3) = obj.F_controller( Xin(3), Xin(6))/obj.Mass;
             
-            %Moments
-            M = zeros(3,1);
-            M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
-            M(2) = obj.M_controller_J2( 2*asin(Xin(8)) , Xin(12) ); %where X(11:13) represent rotational speeds
-            M(3) = obj.M_controller_J3( 2*asin(Xin(9)) , Xin(13) ); %where X(11:13) represent rotational speeds
+            if(~strcmp(obj.controller_params.type,'PID'))
+                % Dynamic Programming Controller
+                % Forces (expressed in body frame of reference)
+                a = zeros(3,1);
+                a(1) = obj.F_controller( Xin(1), Xin(4))/obj.Mass; % X(1:3) represent position and X(4:6) velocities
+                a(2) = obj.F_controller( Xin(2), Xin(5))/obj.Mass;
+                a(3) = obj.F_controller( Xin(3), Xin(6))/obj.Mass;
+                
+                %Moments
+                M = zeros(3,1);
+                M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
+                M(2) = obj.M_controller_J2( 2*asin(Xin(8)) , Xin(12) ); %where X(11:13) represent rotational speeds
+                M(3) = obj.M_controller_J3( 2*asin(Xin(9)) , Xin(13) ); %where X(11:13) represent rotational speeds
+                
+            else
+                % Integrals for PID controller
+                obj.controller_params.integral_a1 = obj.controller_params.integral_a1 + Xin(1)*obj.h;
+                obj.controller_params.integral_a2 = obj.controller_params.integral_a2 + Xin(2)*obj.h;
+                obj.controller_params.integral_a3 = obj.controller_params.integral_a3 + Xin(3)*obj.h;
+                obj.controller_params.integral_M1 = obj.controller_params.integral_M1 + 2*asin(Xin(7))*obj.h;
+                obj.controller_params.integral_M2 = obj.controller_params.integral_M2 + 2*asin(Xin(8))*obj.h;
+                obj.controller_params.integral_M3 = obj.controller_params.integral_M3 + 2*asin(Xin(9))*obj.h;
+                
+                a = zeros(3,1);
+                a(1) = Xin(1)* -obj.controller_params.Kp_F + ...
+                    (Xin(1) - obj.controller_params.prev_error_a1) * -obj.controller_params.Kd_F / obj.h + ...
+                    obj.controller_params.integral_a1 * -obj.controller_params.Ki_F;
+                
+                a(2) = Xin(2)* -obj.controller_params.Kp_F + ...
+                    (Xin(2) - obj.controller_params.prev_error_a2) * -obj.controller_params.Kd_F / obj.h + ...
+                    obj.controller_params.integral_a2 * -obj.controller_params.Ki_F;
+                
+                a(3) = Xin(3)* -obj.controller_params.Kp_F + ...
+                    (Xin(3) - obj.controller_params.prev_error_a3) * -obj.controller_params.Kd_F / obj.h + ...
+                    obj.controller_params.integral_a3 * -obj.controller_params.Ki_F;
+                
+                a = a/obj.Mass; 
+                
+                M = zeros(3,1);
+                M(1) = 2*asin(Xin(7)) * -obj.controller_params.Kp_M + ...
+                    (2*asin(Xin(7)) - obj.controller_params.prev_error_M1) * -obj.controller_params.Kd_M / obj.h + ...
+                    obj.controller_params.integral_M1 * -obj.controller_params.Ki_M;
+                M(2) = 2*asin(Xin(8)) * -obj.controller_params.Kp_M + ...
+                    (2*asin(Xin(8)) - obj.controller_params.prev_error_M2) * -obj.controller_params.Kd_M / obj.h + ...
+                    obj.controller_params.integral_M2 * -obj.controller_params.Ki_M;
+                M(3) = 2*asin(Xin(9)) * -obj.controller_params.Kp_M + ...
+                    (2*asin(Xin(9)) - obj.controller_params.prev_error_M3) * -obj.controller_params.Kd_M / obj.h + ...
+                    obj.controller_params.integral_M3 * -obj.controller_params.Ki_M;
+               %save errors
+               
+               obj.controller_params.prev_error_a1 = Xin(1);
+               obj.controller_params.prev_error_a2 = Xin(2);
+               obj.controller_params.prev_error_a3 = Xin(3);
+               obj.controller_params.prev_error_M1 = 2*asin(Xin(7));
+               obj.controller_params.prev_error_M2 = 2*asin(Xin(8));
+               obj.controller_params.prev_error_M3 = 2*asin(Xin(9));
+                
+            end
+            
             
         end
         
@@ -490,7 +590,7 @@ classdef Simulator_CW < handle
                 all_evaluations(ii) = e' * obj.active_set.Weighting_Matrix * e;
             end
             
-            [best_evaluation, best_evaluation_id] = min(all_evaluations, [], 2);
+            [best_evaluation, best_evaluation_id] = min(all_evaluations, [], 2); %#ok<ASGLU>
             
 %             if ( length(all_evaluations((all_evaluations - best_evaluation) == 0)) > 1)
 %                 keyboard;
