@@ -239,10 +239,27 @@ classdef Simulator_CW < handle
                             f(i) = f_pairs(i);
                         end
                     end
+                    
                     if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
                         f(obj.faulty_thruster_index +1) = 0;
                     end
                     
+                case 'saturate-only'
+                     f_pairs = f_pairs_req; 
+                    for i=1:6
+                        if(f_pairs(i) < 0)
+                            f(i+6) = -f_pairs(i);
+                        else
+                            f(i) = f_pairs(i);
+                        end
+                    end
+                    if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
+                        f(obj.faulty_thruster_index +1) = 0;
+                    end
+                    %saturate
+                    f(f > obj.Thruster_max_F) = obj.Thruster_max_F;
+  
+                    %
                 case 'none'
                     % debug code block
                     f_pairs = f_pairs_req; %cancels out schmitt trigger
@@ -321,7 +338,7 @@ classdef Simulator_CW < handle
             X_ode45(1,:) = X0;
             % Calculate the target initial state vector
             [R0,V0] = get_target_R0V0();
-            tic
+%             tic
             for k_stage=1:N_total_sim-1
                 %determine F_Opt each Thruster
                 X_stage = X_ode45(k_stage,:);
@@ -368,11 +385,12 @@ classdef Simulator_CW < handle
                 % accuracy
 %                 X_temp = ode_1(obj, @ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
                 X_temp = ode_RK4(obj, X_stage);
+%                 X_temp = ode_1(obj, X_stage);
 %                 [~,X_temp] = ode23(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
 %                 [~,X_temp] = ode45(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
                 X_ode45(k_stage+1,:) = X_temp(end,:);
             end
-            toc
+%             toc
             T_ode45 = tspan(1:end-1)';
             %save history
             obj.history = struct('T_ode45',T_ode45,'Force_Moment_log',Force_Moment_log,...
@@ -473,15 +491,19 @@ classdef Simulator_CW < handle
                 single(controller.v_Mthruster(controller.M_U_Optimal_id_J2)), obj.controller_InterpmodeM,'nearest');
             obj.M_controller_J3 = griddedInterpolant(controller.M_gI_J3,...
                 single(controller.v_Mthruster(controller.M_U_Optimal_id_J3)), obj.controller_InterpmodeM,'nearest');
+            
+            obj.controller_params.Qx = controller.controller.Qx;
+            obj.controller_params.Qv = controller.controller.Qv;
+            obj.controller_params.Qt = controller.controller.Qt;
+            obj.controller_params.Qw = controller.controller.Qw;
+            obj.controller_params.R = controller.controller.R;
         end
         
         function [M, a] = Opt_Force_Moments(obj, Xin)
-            
             if(~strcmp(obj.controller_params.type,'PID'))
                 % Dynamic Programming Controller
                 % Forces (expressed in body frame of reference)
-                a = (obj.F_controller( Xin(1:3), Xin(4:6))/obj.Mass)'; % X(1:3) represent position and X(4:6) velocities
-                
+                a = (obj.F_controller( Xin(1:3)', Xin(4:6)')/obj.Mass); % X(1:3) represent position and X(4:6) velocities
                 %Moments
                 M = zeros(3,1);
                 M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
@@ -543,14 +565,14 @@ classdef Simulator_CW < handle
             B = [1,1,-1,-1;...
                 1,-1,-1,1];
             all_evaluations = zeros(1,L);
-            W = obj.active_set.Weighting_Matrix([1;4]);
+%             W = obj.active_set.Weighting_Matrix([1;4]);
             
             for ii=1:L
-                %u = [f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F;
-                %e = (B*u - [Freq; Mreq]);
-                %all_evaluations(ii) = e' * obj.active_set.Weighting_Matrix * e;
-                all_evaluations(1,ii) = sum((B*[f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F ...
-                    - [Freq; Mreq]).^2 .* W);
+                u = [f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F;
+                e = (B*u - [Freq; Mreq]);
+                all_evaluations(ii) = e' * obj.active_set.Weighting_Matrix * e;
+%                 all_evaluations(1,ii) = sum((B*[f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F ...
+%                     - [Freq; Mreq]).^2 .* W);
             end
             
             [best_evaluation, best_evaluation_id] = min(all_evaluations, [], 2); %#ok<ASGLU>
@@ -630,13 +652,12 @@ classdef Simulator_CW < handle
             X2 = X2';
         end
         
-          function X2 = ode_1(~, ode_fun, t_vector, x)
-            % Runge-Kutta - 4th order
+          function X2 = ode_1(obj, x)
+            % Taylor
             % h = dt;
-            t1 = t_vector(1);
-            h_t = t_vector(2) - t1;
+            h_t = obj.h;
             x = x';
-            k1 = ode_fun(t1, x);
+            k1 = system_dynamics(obj, x);
             X2 = x + h_t*k1;
             X2 = X2';
           end
