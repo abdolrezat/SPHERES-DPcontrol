@@ -1,4 +1,4 @@
-function test_surface(filename)
+function [axF,axM] = test_surface(filename)
 %test the controller values to see what portion of their surface (optimal)
 %is made up from max and min values of Forces or Moments
 %this controller has the optimal values for Forces and moments after trying
@@ -88,5 +88,5 @@ max_M3 = unq_M3(end-2);
 percentage_M3 = (sum(M_controller_J3.Values(:) > max_M3) +...
     sum(M_controller_J3.Values(:) < -max_M3)) / numel(M_controller_J3.Values);
 
-figure
-contourf(XM1,XM2,M_controller_J3.Values,'ShowText','on')
+% figure
+% contourf(XM1,XM2,M_controller_J3.Values,'ShowText','on')

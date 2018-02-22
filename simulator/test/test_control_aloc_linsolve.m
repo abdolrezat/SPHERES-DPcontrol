@@ -1,4 +1,5 @@
 function test_control_aloc_linsolve
+%% an initial test script for some of the control allocation methods
 % syms f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 Fx Fy Fz real
 % P = equationsToMatrix(f0 + f1 -f6 -f7 == Fx, f2 + f3 -f8 -f9 == Fy, f4 + f5 - f10 - f11 == Fz,[f0 f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11]);
 % B = [0,0,0,0,1,-1,0,0,0,0,-1,1;1,-1,0,0,0,0,-1,1,0,0,0,0;0,0,1,-1,0,0,0,0,-1,1,0,0];

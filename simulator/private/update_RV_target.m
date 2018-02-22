@@ -1,5 +1,7 @@
 function [R2,V2] = update_RV_target(R0,V0,t)
 %Updates the state vectors of the target sat
+%Algorithm 3.4, pp.191-192 of Orbital Mechanics [Curtis 2010]
+
 % mu - gravitational parameter (km^3/s^2)
 % R0 - initial position vector (km)
 % V0 - initial velocity vector (km/s)

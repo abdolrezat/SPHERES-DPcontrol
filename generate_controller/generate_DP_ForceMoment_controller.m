@@ -66,9 +66,9 @@ else
     n_mesh_M = 10;
 end
 %SPHERES config values
-J1 = 0.02836 + 0.00016;
-J2 =  0.026817 + 0.00150;
-J3 =  0.023 + 0.00150;
+J1 = 2.3E-2;
+J2 = 2.42E-2;
+J3 = 2.14E-2;
 Mass = 4.16;
 
     %logarithmic spacing
@@ -95,23 +95,23 @@ else
     [F_gI,F_U_Optimal_id] = DP_XV_one_channel_U_Opt_visualization(s_x,s_v, ...
         v_Fthruster,Qx,Qv,R, h, T_final, Mass); %#ok<ASGLU>
 end
-save(filename,'F_gI', 'F_U_Optimal_id','v_Fthruster','v_Mthruster')
+save(filename,'F_gI', 'F_U_Optimal_id','v_Fthruster','v_Mthruster', 'controller')
 clear('F_gI', 'F_U_Optimal_id')
 
 T_final = Tm;
 [M_gI_J1,M_U_Optimal_id_J1] = DP_TW_one_channel_U_Opt(s_t,s_w, ... 
     v_Mthruster,Qt,Qw,R, h, T_final, J1); %#ok<ASGLU>
-save(filename, 'M_gI_J1' , 'M_U_Optimal_id_J1', '-append')
+save(filename, 'M_gI_J1' , 'M_U_Optimal_id_J1', 'controller', '-append')
 clear('M_gI_J1' , 'M_U_Optimal_id_J1')
 
 [M_gI_J2,M_U_Optimal_id_J2] = DP_TW_one_channel_U_Opt(s_t,s_w, ...
     v_Mthruster,Qt,Qw,R, h, T_final, J2); %#ok<ASGLU>
-save(filename, 'M_gI_J2' , 'M_U_Optimal_id_J2', '-append')
+save(filename, 'M_gI_J2' , 'M_U_Optimal_id_J2', 'controller', '-append')
 clear('M_gI_J2' , 'M_U_Optimal_id_J2')
 
 [M_gI_J3,M_U_Optimal_id_J3] = DP_TW_one_channel_U_Opt(s_t,s_w, ...
     v_Mthruster,Qt,Qw,R, h, T_final, J3); %#ok<ASGLU>
-save(filename, 'M_gI_J3' , 'M_U_Optimal_id_J3', '-append')
+save(filename, 'M_gI_J3' , 'M_U_Optimal_id_J3', 'controller', '-append')
 clear('M_gI_J3' , 'M_U_Optimal_id_J3')
 
 end

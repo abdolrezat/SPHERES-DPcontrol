@@ -11,9 +11,9 @@ Qt = .5;
 Qw = .5;
 R =  .1;
 %SPHERES config values, single channel
-J = 0.02836 + 0.00016;
+J = 0.023;
 Mass = 4.16;
-Thruster_max_F = 0.13; % (N)
+Thruster_max_F = 0.12; % (N)
 Thruster_dist = 9.65E-2; % (meters)
 F_Thr0 = [0 Thruster_max_F];
 F_Thr1 = [0 Thruster_max_F];

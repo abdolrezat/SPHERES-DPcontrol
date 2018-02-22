@@ -1,9 +1,33 @@
-function plot_results(obj, T_ode45, Force_Moment_log, X_ode45 , F_Th_Opt, Force_Moment_log_req)
+function plot_results(obj)
+T_ode45 = obj.history.T_ode45;
+Force_Moment_log = obj.history.Force_Moment_log;
+X_ode45 = obj.history.X_ode45;
+F_Th_Opt = obj.history.F_Th_Opt;
+Force_Moment_log_req = obj.history.Force_Moment_log_req;
+
 %% calculate fuel consumption
 FC_history = cumsum(F_Th_Opt)/max(F_Th_Opt(:));
 FC_total = sum(FC_history(end,:));
 fprintf('Total Thruster-On Time (Fuel Consumption) = %.3f seconds\n', FC_total*0.005)
 
+%% calculate Quadratic Cost function
+try %#ok<*TRYNC>
+    Qx = obj.controller_params.Qx;
+    Qv = obj.controller_params.Qv;
+    Qt = obj.controller_params.Qt;
+    Qw = obj.controller_params.Qw;
+    R = obj.controller_params.R;
+    
+    X = obj.history.X_ode45;
+    U = obj.history.F_Th_Opt;
+    costx = sum( sum( X(:,1:3).^2 ))*Qx;
+    costv = sum( sum( X(:,4:6).^2 ))*Qv;
+    costu = sum( U(:))*R;
+    total_cost =  costx + costv + costu;
+    
+    fprintf('costX: %.2g | costV: %.2g | costU: %.2g, Total = %.3g\n',...
+        costx,costv,costu,total_cost)
+end
 %% plot path over control surface
 x1 = X_ode45(:,1);
 v1 = X_ode45(:,4);
@@ -12,15 +36,16 @@ F1 = Force_Moment_log(:,1)*obj.Mass;
 t3 = theta3*180/pi;
 w3 = X_ode45(:,13);
 M3 = Force_Moment_log(:,6);
-
-[axF,axM] = test_surface(obj.current_controller);
-axes(axF.Parent)
-% colormap('winter')
-hold on, plot3(x1,v1,F1,'m:', 'LineWidth',2.0);
-
-axes(axM.Parent)
-% colormap('winter')
-hold on, plot3(t3,w3,M3,'m:', 'LineWidth',2.0);
+if(~strcmp(obj.controller_params.type,'PID'))
+    [axF,axM] = test_surface(obj.current_controller);
+    axes(axF.Parent)
+    % colormap('winter')
+    hold on, plot3(x1,v1,F1,'m:', 'LineWidth',2.0);
+    
+    axes(axM.Parent)
+    % colormap('winter')
+    hold on, plot3(t3,w3,M3,'m:', 'LineWidth',2.0);
+end
 
 %% plot Thruster Firings
         ylim_thr = [-.15 .15];

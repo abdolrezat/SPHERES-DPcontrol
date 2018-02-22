@@ -55,7 +55,7 @@ end
 
 fsum50_prev = 0;
 idsum50_prev = 0;
-tol = 15;
+tol = -1;
 tic
 for k_s = N_stage-1:-1:1
     %% move U_optimal_id to the terminal checkpoint

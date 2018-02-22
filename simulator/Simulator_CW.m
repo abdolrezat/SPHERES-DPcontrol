@@ -87,13 +87,19 @@ classdef Simulator_CW < handle
             
             
             this.Mass = 4.16;
-            inertia(1,1) =  0.02836 + 0.00016;
-            inertia(2,1) =  0.026817 + 0.00150;
-            inertia(3,1) =  0.023 + 0.00150;
-            inertia(4,1) = -0.0000837;
-            inertia(5,1) =  0.000014;
-            inertia(6,1) = -0.00029;
-            this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
+%             inertia(1,1) =  0.02836 + 0.00016;
+%             inertia(2,1) =  0.026817 + 0.00150;
+%             inertia(3,1) =  0.023 + 0.00150;
+%             inertia(4,1) = -0.0000837;
+%             inertia(5,1) =  0.000014;
+%             inertia(6,1) = -0.00029;
+            inertia(1,1) =  2.30E-2;  %kg m^2
+            inertia(2,1) =  2.42E-2;
+            inertia(3,1) =  2.14E-2;
+            inertia(4,1) =  9.90E-05;
+            inertia(5,1) = -2.95E-04;
+            inertia(6,1) = -2.54E-05;
+this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 inertia(4,1)  inertia(2,1)  inertia(6,1);...
                 inertia(5,1)  inertia(6,1)  inertia(3,1)];
             
@@ -353,7 +359,7 @@ classdef Simulator_CW < handle
                 obj.H  = (crossRV'*crossRV)^.5 ; %norm(crossRV);
                 
                 % required (Optimal) moments (U_M) and directional accelerations (a_* |x,y,z|) with
-                % respect to inertial frame
+                % respect to RSW frame
                 [U_M_req, a_req] = Opt_Force_Moments(obj,X_stage);
                 %rotation matrices
                 rotM_RSW2ECI = RSW2ECI(obj, R0, V0);
