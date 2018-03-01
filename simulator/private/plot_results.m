@@ -29,24 +29,37 @@ try %#ok<*TRYNC>
         costx,costv,costu,total_cost)
 end
 %% plot path over control surface
-x1 = X_ode45(:,1);
-v1 = X_ode45(:,4);
-F1 = Force_Moment_log(:,1)*obj.Mass;
-[theta1,theta2,theta3] = quat2angle(X_ode45(:,10:-1:7));
-t3 = theta3*180/pi;
-w3 = X_ode45(:,13);
-M3 = Force_Moment_log(:,6);
-if(~strcmp(obj.controller_params.type,'PID'))
-    [axF,axM] = test_surface(obj.current_controller);
-    axes(axF.Parent)
-    % colormap('winter')
-    hold on, plot3(x1,v1,F1,'m:', 'LineWidth',2.0);
-    
-    axes(axM.Parent)
-    % colormap('winter')
-    hold on, plot3(t3,w3,M3,'m:', 'LineWidth',2.0);
-end
+% theta as angles
+% [theta1,theta2,theta3] = quat2angle(X_ode45(:,10:-1:7));
+% single rotation thetas as  controller 'sees' them:
+theta1 = 2*asin(X_ode45(:,7))*180/pi;
+theta2 = 2*asin(X_ode45(:,8))*180/pi;
+theta3 = 2*asin(X_ode45(:,9))*180/pi;
+                
+diff_t1 = [0; diff(theta1)]/obj.h;
+diff_t2 = [0; diff(theta2)]/obj.h;
+diff_t3 = [0; diff(theta3)]/obj.h;
 
+
+if(0) %skip
+    
+    x1 = X_ode45(:,1);
+    v1 = X_ode45(:,4);
+    F1 = Force_Moment_log(:,1)*obj.Mass;t3 = theta3*180/pi;
+    w3 = X_ode45(:,13);
+    M3 = Force_Moment_log(:,6);
+    if(~strcmp(obj.controller_params.type,'PID'))
+        [axF,axM] = test_surface(obj.current_controller);
+        axes(axF.Parent)
+        % colormap('winter')
+        hold on, plot3(x1,v1,F1,'m:', 'LineWidth',2.0);
+        
+        axes(axM.Parent)
+        % colormap('winter')
+        hold on, plot3(t3,w3,M3,'m:', 'LineWidth',2.0);
+    end
+    
+end
 %% plot Thruster Firings
         ylim_thr = [-.15 .15];
         pos_fig_thruster = [7.4000   61.8000  538.4000  712.8000];
@@ -218,10 +231,10 @@ end
         pos_fig_a = [973.0000  218.6000  518.4000  326.4000];
         figure('Name','states - angles','Position',pos_fig_a)
         
-        plot(T_ode45, theta1*180/pi)
+        plot(T_ode45, theta1)
         hold on
-        plot(T_ode45, theta2*180/pi)
-        plot(T_ode45, theta3*180/pi)
+        plot(T_ode45, theta2)
+        plot(T_ode45, theta3)
         grid on
         legend('\theta_1','\theta_2','\theta_3')
                
@@ -254,4 +267,21 @@ end
         xlabel('time (s)')
         ylabel('rotational speed (deg/s)')
         
+        % plot diff theta
+        figure('Name','theta diff','Position',pos_fig_w+3)
+        
+        plot(T_ode45, diff_t1)
+        title('states - rotational speeds (deg/sec)')
+
+        hold on
+        plot(T_ode45, diff_t2)
+        plot(T_ode45, diff_t3)
+        grid on
+        legend('diff-t1','diff-t2','diff-t3')
+        
+        xlabel('time (s)')
+        ylabel('(deg/s)')
+        
+         
+
 end
