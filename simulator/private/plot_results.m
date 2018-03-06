@@ -30,7 +30,7 @@ try %#ok<*TRYNC>
 end
 %% plot path over control surface
 % theta as angles
-% [theta1,theta2,theta3] = quat2angle(X_ode45(:,10:-1:7));
+[theta1q2a,theta2q2a,theta3q2a] = quat2angle(X_ode45(:,10:-1:7));
 % single rotation thetas as  controller 'sees' them:
 theta1 = 2*asin(X_ode45(:,7))*180/pi;
 theta2 = 2*asin(X_ode45(:,8))*180/pi;
@@ -228,7 +228,7 @@ end
         ylabel('velocity (m/s)')
         
          % plot states - angles
-        pos_fig_a = [973.0000  218.6000  518.4000  326.4000];
+        pos_fig_a = [973.0000  218.6000  518.4000  326.4000]+10;
         figure('Name','states - angles','Position',pos_fig_a)
         
         plot(T_ode45, theta1)
@@ -236,8 +236,27 @@ end
         plot(T_ode45, theta2)
         plot(T_ode45, theta3)
         grid on
-        legend('\theta_1','\theta_2','\theta_3')
+            %plot w2 cumulative sum
+            w2 =  X_ode45(:,12)*180/pi;
+%             cumsum_diff_t2 = cumsum(diff_t2)/(length(diff_t2)-1)*180;%  theta2 =
+%            t2_from_intw2 = cumsum(w2)/(length(w2)-1)*180;
+            t2_from_trapz_w2 = cumtrapz(T_ode45,w2);
+        plot(T_ode45,t2_from_trapz_w2,'--r')
+        
+        legend('\theta_1','\theta_2','\theta_3','integral(w2)')
                
+         % plot states - angles from 3 quaternions conversion
+%         pos_fig_a = [973.0000+1  218.6000+1  518.4000+1  326.4000+1]-5;
+%         figure('Name','states - angles','Position',pos_fig_a)
+%         
+%         plot(T_ode45, theta1q2a*180/pi)
+%         hold on
+%         plot(T_ode45, theta2q2a*180/pi)
+%         plot(T_ode45, theta3q2a*180/pi)
+%         grid on
+%         legend('\theta_1','\theta_2','\theta_3')
+%                
+        
         % plot states - q
         pos_fig_q = [973.0000  218.6000  518.4000  326.4000];
         figure('Name','states - quaternions','Position',pos_fig_q)
@@ -259,6 +278,7 @@ end
         title('states - rotational speeds (deg/sec)')
 
         hold on
+        
         plot(T_ode45, X_ode45(:,12)*180/pi)
         plot(T_ode45, X_ode45(:,13)*180/pi)
         grid on
@@ -270,18 +290,17 @@ end
         % plot diff theta
         figure('Name','theta diff','Position',pos_fig_w+3)
         
-        plot(T_ode45, diff_t1)
+        plot(T_ode45, diff_t1,'-')
         title('states - rotational speeds (deg/sec)')
 
         hold on
-        plot(T_ode45, diff_t2)
-        plot(T_ode45, diff_t3)
+        plot(T_ode45, diff_t2,'-')
+        plot(T_ode45, diff_t3,'-')
         grid on
         legend('diff-t1','diff-t2','diff-t3')
         
         xlabel('time (s)')
         ylabel('(deg/s)')
         
-         
-
+        
 end

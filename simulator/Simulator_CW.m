@@ -52,6 +52,9 @@ classdef Simulator_CW < handle
         a_x
         a_y
         a_z
+        thruster_min_ontime
+        thr_program
+        thr_program_counter
     end
     
     methods
@@ -62,7 +65,6 @@ classdef Simulator_CW < handle
                 try
                     this.controller_params = controller; %uses options such as Ki
                 catch 
-                    warning('assuming DynamicProgramming controller')
                     this.controller_params.type = 'DP';
                 end
                 %set (DP) controller name
@@ -79,14 +81,14 @@ classdef Simulator_CW < handle
                 this.thruster_allocation_mode = simopts.thruster_allocation_mode;
                 this.faulty_thruster_index = simopts.faulty_thruster_index;
                 this.active_set.Weighting_Matrix = simopts.active_set.Weighting_Matrix;
+                this.active_set.Weighting_Matrix_default = simopts.active_set.Weighting_Matrix;
             end
             
             if(strcmp(this.mode,'normal') == 1)
                 this.faulty_thruster_index = [];
             end
             
-            
-            this.Mass = 4.16;
+            this.Mass = 4.16;  %change to constant parameter
 %             inertia(1,1) =  0.02836 + 0.00016;
 %             inertia(2,1) =  0.026817 + 0.00150;
 %             inertia(3,1) =  0.023 + 0.00150;
@@ -117,39 +119,60 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             %Thruster Forces
             this.Thruster_max_F = simopts.Thruster_max_F; % (N)
             this.T_dist = simopts.Thruster_dist; % (meters)
+            this.thruster_min_ontime = 0.005;
+
+            try
+                simopts.PWPF1; %if doesn't exist
+            catch
+                simopts.PWPF1 = simopts.PWPF;
+                simopts.PWPF2 = simopts.PWPF;
+                simopts.PWPF3 = simopts.PWPF;
+                simopts.PWPF4 = simopts.PWPF;
+                simopts.PWPF5 = simopts.PWPF;
+                simopts.PWPF6 = simopts.PWPF;
+                simopts.schmitt1 = simopts.schmitt;
+                simopts.schmitt2 = simopts.schmitt;
+                simopts.schmitt3 = simopts.schmitt;
+                simopts.schmitt4 = simopts.schmitt;
+                simopts.schmitt5 = simopts.schmitt;
+                simopts.schmitt6 = simopts.schmitt;
+            end
+            
             
             %6x schmitt trigger objects
             this.schmitt_trigger1 = Schmitt_trigger_c(...
-                simopts.schmitt.Uout,simopts.schmitt.Uon,simopts.schmitt.Uoff);
+                simopts.schmitt1.Uout,simopts.schmitt1.Uon,simopts.schmitt1.Uoff);
             this.schmitt_trigger2 = Schmitt_trigger_c(...
-                simopts.schmitt.Uout,simopts.schmitt.Uon,simopts.schmitt.Uoff);
+                simopts.schmitt2.Uout,simopts.schmitt2.Uon,simopts.schmitt2.Uoff);
             this.schmitt_trigger3 = Schmitt_trigger_c(...
-                simopts.schmitt.Uout,simopts.schmitt.Uon,simopts.schmitt.Uoff);
+                simopts.schmitt3.Uout,simopts.schmitt3.Uon,simopts.schmitt3.Uoff);
             this.schmitt_trigger4 = Schmitt_trigger_c(...
-                simopts.schmitt.Uout,simopts.schmitt.Uon,simopts.schmitt.Uoff);
+                simopts.schmitt4.Uout,simopts.schmitt4.Uon,simopts.schmitt4.Uoff);
             this.schmitt_trigger5 = Schmitt_trigger_c(...
-                simopts.schmitt.Uout,simopts.schmitt.Uon,simopts.schmitt.Uoff);
+                simopts.schmitt5.Uout,simopts.schmitt5.Uon,simopts.schmitt5.Uoff);
             this.schmitt_trigger6 = Schmitt_trigger_c(...
-                simopts.schmitt.Uout,simopts.schmitt.Uon,simopts.schmitt.Uoff);
+                simopts.schmitt6.Uout,simopts.schmitt6.Uon,simopts.schmitt6.Uoff);
+           
             %6x PWPF objects
             this.PWPF1 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
+                simopts.PWPF1.Km, simopts.PWPF1.Tm, simopts.PWPF1.h, ...
+                simopts.schmitt1.Uout, simopts.schmitt1.Uon, simopts.schmitt1.Uoff, simopts.PWPF1.H_feed);
             this.PWPF2 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
+                simopts.PWPF2.Km, simopts.PWPF2.Tm, simopts.PWPF2.h, ...
+                simopts.schmitt2.Uout, simopts.schmitt2.Uon, simopts.schmitt2.Uoff, simopts.PWPF2.H_feed);
             this.PWPF3 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
+                simopts.PWPF3.Km, simopts.PWPF3.Tm, simopts.PWPF3.h, ...
+                simopts.schmitt3.Uout, simopts.schmitt3.Uon, simopts.schmitt3.Uoff, simopts.PWPF3.H_feed);
             this.PWPF4 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
+                simopts.PWPF4.Km, simopts.PWPF4.Tm, simopts.PWPF4.h, ...
+                simopts.schmitt4.Uout, simopts.schmitt4.Uon, simopts.schmitt4.Uoff, simopts.PWPF4.H_feed);
             this.PWPF5 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
+                simopts.PWPF5.Km, simopts.PWPF5.Tm, simopts.PWPF5.h, ...
+                simopts.schmitt5.Uout, simopts.schmitt5.Uon, simopts.schmitt5.Uoff, simopts.PWPF5.H_feed);
             this.PWPF6 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF.Km, simopts.PWPF.Tm, simopts.PWPF.h, ...
-                simopts.schmitt.Uout, simopts.schmitt.Uon, simopts.schmitt.Uoff, simopts.PWPF.H_feed);
+                simopts.PWPF6.Km, simopts.PWPF6.Tm, simopts.PWPF6.h, ...
+                simopts.schmitt6.Uout, simopts.schmitt6.Uon, simopts.schmitt6.Uoff, simopts.PWPF6.H_feed);
+            
             % control allocation function to thrusters, from all combinations of Forces
             % and Moments that can be generated with the operating thrusters
             id_fault_channel_1 = this.faulty_thruster_index(...
@@ -158,7 +181,13 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 ismember(this.faulty_thruster_index, [2 3 8 9])) - 2;
             id_fault_channel_3 = this.faulty_thruster_index(...
                 ismember(this.faulty_thruster_index, [4 5 10 11])) - 4;
-            
+            if( strcmpi(this.thruster_allocation_mode, 'quadratic programming pulse modulation') ||...
+                    strcmpi(this.thruster_allocation_mode, 'quadratic programming pulse modulation-adaptive'))
+                v_ = (0:this.h:0.2) * 5;
+                this.thrust_combs.f0167 = all_feasible_thruster_u_QP(id_fault_channel_1,v_).*this.Thruster_max_F/5;
+                this.thrust_combs.f2389 = all_feasible_thruster_u_QP(id_fault_channel_2,v_).*this.Thruster_max_F/5;
+                this.thrust_combs.f451011 = all_feasible_thruster_u_QP(id_fault_channel_3,v_).*this.Thruster_max_F/5;
+            else
             [this.thrust_combs.f0_comb,this.thrust_combs.f1_comb,...
                 this.thrust_combs.f6_comb,this.thrust_combs.f7_comb] = ...
                 all_feasible_thruster_u(id_fault_channel_1);
@@ -168,10 +197,19 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             [this.thrust_combs.f4_comb,this.thrust_combs.f5_comb,...
                 this.thrust_combs.f10_comb,this.thrust_combs.f11_comb] = ...
                 all_feasible_thruster_u(id_fault_channel_3);
+            end
+%             % see the search space (F,M combinations)
+%             Fs = sum(this.thrust_combs.f0167 .* [1;1;-1;-1],1);
+%             Ms = sum(this.thrust_combs.f0167 .* [1;-1;-1;1],1);
+%             Fs2 = sum(this.thrust_combs.f2389 .* [1;1;-1;-1],1);
+%             Ms2 = sum(this.thrust_combs.f2389 .* [1;-1;-1;1],1);
+%             plot(Fs,Ms,'r.'),hold on
+%             plot(Fs2,Ms2,'bx')
+            
         end
         
         
-        function f = get_thruster_on_off_optimal(obj,M_req, a_Body_req, X_stage)
+        function f = get_thruster_on_off_optimal(obj,M_req, a_Body_req, X_stage, sim_time)
             % gets the optimal on/off state of thrusters by assigning
             % thruster forces properly to make up accelerations in the Body
             % frame of reference
@@ -194,6 +232,129 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             f_pairs_req = invA*B;
             
             switch( lower(obj.thruster_allocation_mode) )
+                case 'pseudoinverse pulse modulation'
+%                     if(sim_time > 15.995) keyboard, end
+                   status = mod(sim_time,1); 
+                    if (status < 0.199)
+                        if status < 1e-7 % == 0
+                            % program up to 200ms of thruster firings to be
+                            % executed
+                            f_ = zeros(12,1);
+                            for i=1:6
+                                if(f_pairs_req(i) < 0)
+                                    f_(i+6) = -f_pairs_req(i);
+                                else
+                                    f_(i) = f_pairs_req(i);
+                                end
+                            end
+                    %saturate
+                           f_(f_ > obj.Thruster_max_F/5) = obj.Thruster_max_F/5;
+  
+                            if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
+                                f_(obj.faulty_thruster_index +1) = 0;
+                            end
+                            %
+                            N_ = 0.2/obj.h; % ;
+                            obj.thr_program_counter = 0;
+                            obj.thr_program = zeros(12,N_);
+                            % get thrusters on-time by calculating impulse
+                            t_on = f_/(obj.Thruster_max_F); 
+                             %convert on-time to N thruster firings, to be
+                             %programmed for the next 200ms 
+                            thr_N_fires = round(t_on/obj.h);
+                            for d = 1:12
+                                obj.thr_program(d, 1:thr_N_fires(d)) = 1;
+                            end
+                        end
+                        
+                        obj.thr_program_counter = obj.thr_program_counter + 1;
+                        f = obj.thr_program(:,obj.thr_program_counter)*obj.Thruster_max_F;
+                    else
+                       % SPHERES software spends this time updating its beacons
+                       f = zeros(12,1);
+                    end
+                    
+                case 'quadratic programming pulse modulation'
+                    status = mod(sim_time,1);
+                    if (status < 0.199)
+                        if status < 1e-7 % == 0
+                            % program up to 200ms of thruster firings to be
+                            % executed
+                            [f0,f1,f6,f7] = QuadProg_allocation(obj, B(1), B(5), ...
+                                obj.thrust_combs.f0167);
+                            [f2,f3,f8,f9] = QuadProg_allocation(obj, B(2), B(6), ...
+                                obj.thrust_combs.f2389);
+                            [f4,f5,f10,f11] = QuadProg_allocation(obj, B(3), B(4), ...
+                                obj.thrust_combs.f451011);
+                            
+                            f_t = [f0;f1;f2;f3;f4;f5;f6;f7;f8;f9;f10;f11];
+                            %
+                            N_ = 0.2/obj.h; % ;
+                            obj.thr_program_counter = 0;
+                            obj.thr_program = zeros(12,N_);
+                            % get thrusters on-time by calculating impulse
+                            t_on = f_t/(obj.Thruster_max_F);
+                            %convert on-time to N thruster firings, to be
+                            %programmed for the next 200ms
+                            thr_N_fires = round(t_on/obj.h);
+                            for d = 1:12
+                                obj.thr_program(d, 1:thr_N_fires(d)) = 1;
+                            end
+                        end
+                        
+                        obj.thr_program_counter = obj.thr_program_counter + 1;
+                        f = obj.thr_program(:,obj.thr_program_counter)*obj.Thruster_max_F;
+                    else
+                        % SPHERES software spends this time updating its beacons
+                        f = zeros(12,1);
+                    end
+                case 'quadratic programming pulse modulation-adaptive'
+                    status = mod(sim_time,1);
+                    if (status < 0.199)
+                        if status < 1e-7 % == 0
+                            % program up to 200ms of thruster firings to be
+                            % executed
+                            
+                            %change quadratic programming Weights if theta
+                            %exceeds a threshold
+                            theta2 = 2*asin(X_stage(8))*180/pi;
+                            
+                            if( abs(theta2) > 120)
+                                obj.active_set.Weighting_Matrix(1) = 0;
+                            elseif(abs(theta2) < 80)
+                               obj.active_set.Weighting_Matrix =  obj.active_set.Weighting_Matrix_default;
+                            end
+                            
+                            [f0,f1,f6,f7] = QuadProg_allocation(obj, B(1), B(5), ...
+                                obj.thrust_combs.f0167);
+                            [f2,f3,f8,f9] = QuadProg_allocation(obj, B(2), B(6), ...
+                                obj.thrust_combs.f2389);
+                            [f4,f5,f10,f11] = QuadProg_allocation(obj, B(3), B(4), ...
+                                obj.thrust_combs.f451011);
+                            
+                            f_t = [f0;f1;f2;f3;f4;f5;f6;f7;f8;f9;f10;f11];
+                            %
+                            N_ = 0.2/obj.h; % ;
+                            obj.thr_program_counter = 0;
+                            obj.thr_program = zeros(12,N_);
+                            % get thrusters on-time by calculating impulse
+                            t_on = f_t/(obj.Thruster_max_F);
+                            %convert on-time to N thruster firings, to be
+                            %programmed for the next 200ms
+                            thr_N_fires = round(t_on/obj.h);
+                            for d = 1:12
+                                obj.thr_program(d, 1:thr_N_fires(d)) = 1;
+                            end
+                        end
+                        
+                        obj.thr_program_counter = obj.thr_program_counter + 1;
+                        f = obj.thr_program(:,obj.thr_program_counter)*obj.Thruster_max_F;
+                    else
+                        % SPHERES software spends this time updating its beacons
+                        f = zeros(12,1);
+                    end
+                    
+                    
                 case 'active set discrete'
                     [f0,f1,f6,f7] = asd_allocation_logic(obj, B(1), B(5), ...
                         obj.thrust_combs.f0_comb,obj.thrust_combs.f1_comb,...
@@ -231,9 +392,45 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                         end
                     end
                     
-                    if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
+                    if(strcmp(obj.mode,'fault') == 1) %control in fault mode, indicated thrusters become off
                         f(obj.faulty_thruster_index +1) = 0;
                     end
+                    
+                case 'hybrid_2p-x' 
+                    %channel x uses 2 PWPF modulators, 
+                    %channels y & z are controlled with Quadratic Programming
+                    
+                    % PWPF Modulators
+                    f_pairs1 = obj.PWPF1.signal_update(f_pairs_req(1));
+                    f_pairs2 = obj.PWPF2.signal_update(f_pairs_req(2));
+                    if(f_pairs1 < 0)
+                        f0 = 0;
+                        f6 = -f_pairs1;
+                    else
+                        f0 = f_pairs1;
+                        f6 = 0;
+                    end
+                    if(f_pairs2 < 0)
+                        f1 = 0;
+                        f7 = -f_pairs2;
+                    else
+                        f1 = f_pairs2;
+                        f7 = 0;
+                    end
+                    
+                    % Quadratic Programming
+                    [f2,f3,f8,f9] = asd_allocation_logic(obj, B(2), B(6), ...
+                        obj.thrust_combs.f2_comb,obj.thrust_combs.f3_comb,...
+                        obj.thrust_combs.f8_comb,obj.thrust_combs.f9_comb);
+                    [f4,f5,f10,f11] = asd_allocation_logic(obj, B(3), B(4), ...
+                        obj.thrust_combs.f4_comb,obj.thrust_combs.f5_comb,...
+                        obj.thrust_combs.f10_comb,obj.thrust_combs.f11_comb);
+                    f = [f0;f1;f2;f3;f4;f5;f6;f7;f8;f9;f10;f11];
+
+                    if(strcmp(obj.mode,'fault') == 1) %control in fault mode, indicated thrusters become off
+                        f(obj.faulty_thruster_index +1) = 0;
+                    end
+                    
                     
                 case 'schmitt'
                     f_pairs = schmitt_allpairs(obj,f_pairs_req);
@@ -246,7 +443,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                         end
                     end
                     
-                    if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
+                    if(strcmp(obj.mode,'fault') == 1) %control in fault mode
                         f(obj.faulty_thruster_index +1) = 0;
                     end
                     
@@ -337,11 +534,16 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             %%
             
             tspan = 0:obj.h:tf;
+            Theta_2_history= zeros(N_total_sim, 1);
+            T_ode45 = tspan(1:end-1)';
             X_ode45 = zeros(N_total_sim, 13);
             F_Th_Opt = zeros(N_total_sim, 12);
             Force_Moment_log = zeros(N_total_sim, 6);
             Force_Moment_log_req = zeros(N_total_sim, 6);
             X_ode45(1,:) = X0;
+            % initial angle and rorational speed feed for controllers
+            Theta_ = 2*asin(X_ode45(1,7:9)); 
+            Theta_dot = X_ode45(1,11:13); 
             % Calculate the target initial state vector
             [R0,V0] = get_target_R0V0();
 %             tic
@@ -360,7 +562,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 
                 % required (Optimal) moments (U_M) and directional accelerations (a_* |x,y,z|) with
                 % respect to RSW frame
-                [U_M_req, a_req] = Opt_Force_Moments(obj,X_stage);
+                [U_M_req, a_req] = Opt_Force_Moments(obj,X_stage,Theta_,Theta_dot);
                 %rotation matrices
                 rotM_RSW2ECI = RSW2ECI(obj, R0, V0);
                 rotM_ECI2body = ECI2body(obj,q_stage);
@@ -370,7 +572,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 % debugging block of code for a certain time
 %                 if(tspan(k_stage) == 60.615) keyboard; end
                 %
-                f_thruster = get_thruster_on_off_optimal(obj, M_Body_req, a_Body_req, X_stage);
+                f_thruster = get_thruster_on_off_optimal(obj, M_Body_req, a_Body_req, X_stage, tspan(k_stage));
                 % accelerations from thruster forces1
                 [obj.U_M, obj.a_x, obj.a_y, obj.a_z] = to_Moments_Forces(obj,...
                     f_thruster, rotM_RSW2ECI, rotM_ECI2body);
@@ -389,15 +591,35 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 Force_Moment_log_req(k_stage,:) = [a_req;U_M_req];
                 % use RK4 instead of ode45 for more speed and no less
                 % accuracy
-%                 X_temp = ode_1(obj, @ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
+                %                 X_temp = ode_1(obj, @ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
                 X_temp = ode_RK4(obj, X_stage);
-%                 X_temp = ode_1(obj, X_stage);
-%                 [~,X_temp] = ode23(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
-%                 [~,X_temp] = ode45(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
+                %                 X_temp = ode_1(obj, X_stage);
+                %                 [~,X_temp] = ode23(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
+                %                 [~,X_temp] = ode45(@ode_eq,[tspan(k_stage), tspan(k_stage+1)], X_stage);
+                %update state vector
                 X_ode45(k_stage+1,:) = X_temp(end,:);
+                %update rotational speed feedbacks for controllers (thetadots)
+                temp_theta_new = 2*asin(X_ode45(k_stage+1,7:9));
+%                 Theta_dot = (temp_theta_new - Theta_)/obj.h; %rad/s
+                Theta_dot = X_ode45(k_stage+1,11:13); %rad/s
+                Theta_ = temp_theta_new;
+%% new test code block
+%                 t2_from_trapz_w2 = cumtrapz(T_ode45,X_ode45(:,12));
+%                 if (abs (t2_from_trapz_w2(k_stage)) > pi)
+%                     %Theta_(2) = Theta_(2)/abs(Theta_(2))*(2*pi - Theta_(2));
+%                     Theta_(2) = t2_from_trapz_w2(k_stage);
+%                 end
+%                 Theta_2_history(k_stage) = Theta_(2);
+% %                     Theta_(2) = t2_from_trapz_w2(k_stage);
+% %                 if(abs(t2_from_trapz_w2(k_stage)) >= pi)
+% %                     Theta_(2) = 360 - Theta_(2);
+%                 end
+%                 if(t2_from_trapz_w2 < 150)
+%                     Theta_(2) = 360 - Theta_(2);
+%                 end
+                %% 
             end
-%             toc
-            T_ode45 = tspan(1:end-1)';
+            %  toc
             %save history
             obj.history = struct('T_ode45',T_ode45,'Force_Moment_log',Force_Moment_log,...
                 'X_ode45',X_ode45,'F_Th_Opt',F_Th_Opt,'Force_Moment_log_req',Force_Moment_log_req);
@@ -505,16 +727,21 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             obj.controller_params.R = controller.controller.R;
         end
         
-        function [M, a] = Opt_Force_Moments(obj, Xin)
+        function [M, a] = Opt_Force_Moments(obj, Xin, theta_, t_dot)
             if(~strcmp(obj.controller_params.type,'PID'))
                 % Dynamic Programming Controller
                 % Forces (expressed in body frame of reference)
                 a = (obj.F_controller( Xin(1:3)', Xin(4:6)')/obj.Mass); % X(1:3) represent position and X(4:6) velocities
                 %Moments
                 M = zeros(3,1);
-                M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
-                M(2) = obj.M_controller_J2( 2*asin(Xin(8)) , Xin(12) ); %where X(11:13) represent rotational speeds
-                M(3) = obj.M_controller_J3( 2*asin(Xin(9)) , Xin(13) ); %where X(11:13) represent rotational speeds
+%                 M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
+%                 M(2) = obj.M_controller_J2( 2*asin(Xin(8)) , Xin(12) ); %where X(11:13) represent rotational speeds
+%                 M(3) = obj.M_controller_J3( 2*asin(Xin(9)) , Xin(13) ); %where X(11:13) represent rotational speeds
+                %% instead of using w1,w2,w3, we feed theta dot as rotational speed to the controllers
+                M(1) = obj.M_controller_J1( theta_(1) , t_dot(1) ); %where X(11:13) represent rotational speeds
+                M(2) = obj.M_controller_J2( theta_(2) , t_dot(2) ); %where X(11:13) represent rotational speeds
+                M(3) = obj.M_controller_J3( theta_(3) , t_dot(3) ); %where X(11:13) represent rotational speeds                
+                
                 
             else
                 % Integrals for PID controller
@@ -563,6 +790,20 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             
             
         end
+        
+        function [f0,f1,f6,f7] = QuadProg_allocation(obj, Freq, Mreq, f_comb)
+        eF = sum(f_comb .* [1;1;-1;-1],1) - Freq; %repmat is implied (5-6x faster) as of MATLAB R2016b
+        eM = sum(f_comb .* [1;-1;-1;1],1) - Mreq;
+        all_evals = (eF.*eF) * obj.active_set.Weighting_Matrix(1) + ...
+            (eM.*eM) * obj.active_set.Weighting_Matrix(4);
+        
+        [best_evaluation, best_evaluation_id] = min(all_evals, [], 2); %#ok<ASGLU>
+        f0 = f_comb(1,best_evaluation_id);
+        f1 = f_comb(2,best_evaluation_id);
+        f6 = f_comb(3,best_evaluation_id);
+        f7 = f_comb(4,best_evaluation_id);
+        end
+        
         
         function [f0,f1,f6,f7] = asd_allocation_logic(obj, Freq, Mreq, ...
                 f0_comb,f1_comb,f6_comb,f7_comb)
