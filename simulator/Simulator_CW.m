@@ -22,7 +22,9 @@ classdef Simulator_CW < handle
         %controllers
         current_controller %name of the controller mat file
         controller_params
-        F_controller
+        F_controller_x
+        F_controller_y
+        F_controller_z
         M_controller_J1
         M_controller_J2
         M_controller_J3
@@ -30,6 +32,7 @@ classdef Simulator_CW < handle
         controller_InterpmodeM
         thruster_allocation_mode % 'PWPF', 'Schmitt' (for schmitt trigger only) and 'none' for continuous force application
         active_set
+        quad_prog
         schmitt_trigger1
         schmitt_trigger2
         schmitt_trigger3
@@ -55,6 +58,7 @@ classdef Simulator_CW < handle
         thruster_min_ontime
         thr_program
         thr_program_counter
+        bool_channel_fault
     end
     
     methods
@@ -80,8 +84,17 @@ classdef Simulator_CW < handle
                 this.controller_InterpmodeM = simopts.controller_InterpmodeM;
                 this.thruster_allocation_mode = simopts.thruster_allocation_mode;
                 this.faulty_thruster_index = simopts.faulty_thruster_index;
-                this.active_set.Weighting_Matrix = simopts.active_set.Weighting_Matrix;
-                this.active_set.Weighting_Matrix_default = simopts.active_set.Weighting_Matrix;
+                this.quad_prog.Weighting_Matrix_1_default = simopts.Quad_Prog.Weighting_Matrix_1;
+                this.quad_prog.Weighting_Matrix_2_default = simopts.Quad_Prog.Weighting_Matrix_2;
+                this.quad_prog.Weighting_Matrix_3_default = simopts.Quad_Prog.Weighting_Matrix_3;
+                this.quad_prog.Weighting_Matrix_1 = this.quad_prog.Weighting_Matrix_1_default;
+                this.quad_prog.Weighting_Matrix_2 = this.quad_prog.Weighting_Matrix_2_default;
+                this.quad_prog.Weighting_Matrix_3 = this.quad_prog.Weighting_Matrix_3_default;
+                this.quad_prog.angle_up_bound = 140;
+                this.quad_prog.angle_low_bound = 120;
+%                 % used to be
+%                 this.active_set.Weighting_Matrix = simopts.active_set.Weighting_Matrix;
+%                 this.active_set.Weighting_Matrix_default = simopts.active_set.Weighting_Matrix;
             end
             
             if(strcmp(this.mode,'normal') == 1)
@@ -181,6 +194,28 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 ismember(this.faulty_thruster_index, [2 3 8 9])) - 2;
             id_fault_channel_3 = this.faulty_thruster_index(...
                 ismember(this.faulty_thruster_index, [4 5 10 11])) - 4;
+            
+            % variables to determine if a channel is faulty, these are used
+            % in thruster allocation section where weighting matrices are
+            % changed when angles exceed a threshold (adaptive)
+            if(isempty(id_fault_channel_1))
+                this.bool_channel_fault.x = false; %keep in mind, channel x provides moments in y direction
+            else
+                this.bool_channel_fault.x = true;
+            end
+            if(isempty(id_fault_channel_2))
+                this.bool_channel_fault.y = false;% moments in z direction
+            else
+                this.bool_channel_fault.y = true;
+            end
+            if(isempty(id_fault_channel_3))
+                this.bool_channel_fault.z = false;% moments in x direction
+            else
+                this.bool_channel_fault.z = true;
+            end
+            
+            
+            
             if( strcmpi(this.thruster_allocation_mode, 'quadratic programming pulse modulation') ||...
                     strcmpi(this.thruster_allocation_mode, 'quadratic programming pulse modulation-adaptive'))
                 v_ = (0:this.h:0.2) * 5;
@@ -281,11 +316,11 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                             % program up to 200ms of thruster firings to be
                             % executed
                             [f0,f1,f6,f7] = QuadProg_allocation(obj, B(1), B(5), ...
-                                obj.thrust_combs.f0167);
+                                obj.thrust_combs.f0167, obj.quad_prog.Weighting_Matrix_1);
                             [f2,f3,f8,f9] = QuadProg_allocation(obj, B(2), B(6), ...
-                                obj.thrust_combs.f2389);
+                                obj.thrust_combs.f2389, obj.quad_prog.Weighting_Matrix_2);
                             [f4,f5,f10,f11] = QuadProg_allocation(obj, B(3), B(4), ...
-                                obj.thrust_combs.f451011);
+                                obj.thrust_combs.f451011, obj.quad_prog.Weighting_Matrix_3);
                             
                             f_t = [f0;f1;f2;f3;f4;f5;f6;f7;f8;f9;f10;f11];
                             %
@@ -315,22 +350,55 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                             % program up to 200ms of thruster firings to be
                             % executed
                             
-                            %change quadratic programming Weights if theta
-                            %exceeds a threshold
+                            % adaptive: change quadratic programming Weights if theta
+                            %exceeds a threshold. this operation is done
+                            %only for channels that have one or more
+                            %thrusters failed:
+                            % channel - x (Fx & My)
                             theta2 = 2*asin(X_stage(8))*180/pi;
-                            
-                            if( abs(theta2) > 120)
-                                obj.active_set.Weighting_Matrix(1) = 0;
-                            elseif(abs(theta2) < 80)
-                               obj.active_set.Weighting_Matrix =  obj.active_set.Weighting_Matrix_default;
+                            if(obj.bool_channel_fault.x)%if channel has failed thrusters:
+                                if( abs(theta2) > obj.quad_prog.angle_up_bound)%Moment Control prioritized
+                                    obj.quad_prog.Weighting_Matrix_1(1) = 0;
+%                                     %% debug code block
+%                                     obj.quad_prog.Weighting_Matrix_2(1) = 0;
+%                                     obj.quad_prog.Weighting_Matrix_3(1) = 0;
+                                elseif(abs(theta2) < obj.quad_prog.angle_low_bound)%back to normal
+                                    obj.quad_prog.Weighting_Matrix_1 =  obj.quad_prog.Weighting_Matrix_1_default;
+%                                     %% debug code block
+%                                     obj.quad_prog.Weighting_Matrix_2 =  obj.quad_prog.Weighting_Matrix_2_default;
+%                                     obj.quad_prog.Weighting_Matrix_3=  obj.quad_prog.Weighting_Matrix_3_default;
+                                end
                             end
                             
+                            % channel - y (Fy & Mz)
+                            theta3 = 2*asin(X_stage(9))*180/pi;
+                            if(obj.bool_channel_fault.y)%if channel has failed thrusters:
+                                if( abs(theta3) > obj.quad_prog.angle_up_bound) %Moment Control prioritized
+                                    obj.quad_prog.Weighting_Matrix_2(1) = 0;
+                                elseif(abs(theta3) < obj.quad_prog.angle_low_bound) %back to normal
+                                    obj.quad_prog.Weighting_Matrix_2 =  obj.quad_prog.Weighting_Matrix_2_default;
+                                end
+                            end
+                            
+                            % channel - z (Fz & Mx)
+                            theta1 = 2*asin(X_stage(7))*180/pi;
+                            if(obj.bool_channel_fault.z)%if channel has failed thrusters:
+                                if( abs(theta1) > obj.quad_prog.angle_up_bound)
+                                    obj.quad_prog.Weighting_Matrix_3(1) = 0;
+                                elseif(abs(theta1) < obj.quad_prog.angle_low_bound)
+                                    obj.quad_prog.Weighting_Matrix_3 =  obj.quad_prog.Weighting_Matrix_3_default;
+                                end
+                            end
+                            
+
+                           
+                            % thruster firings allocation using the Quadratic Programming method
                             [f0,f1,f6,f7] = QuadProg_allocation(obj, B(1), B(5), ...
-                                obj.thrust_combs.f0167);
+                                obj.thrust_combs.f0167, obj.quad_prog.Weighting_Matrix_1);
                             [f2,f3,f8,f9] = QuadProg_allocation(obj, B(2), B(6), ...
-                                obj.thrust_combs.f2389);
+                                obj.thrust_combs.f2389, obj.quad_prog.Weighting_Matrix_2);
                             [f4,f5,f10,f11] = QuadProg_allocation(obj, B(3), B(4), ...
-                                obj.thrust_combs.f451011);
+                                obj.thrust_combs.f451011, obj.quad_prog.Weighting_Matrix_3);
                             
                             f_t = [f0;f1;f2;f3;f4;f5;f6;f7;f8;f9;f10;f11];
                             %
@@ -710,28 +778,44 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             path_ = strsplit(mfilename('fullpath'),'\\');
             path_ = strjoin(path_(1:end-1),'\');
             controller = load(strcat(path_,'\..\generate_controller\controller\',controller_name));
-            obj.F_controller = griddedInterpolant(controller.F_gI,...
+            try
+                obj.F_controller_x = griddedInterpolant(controller.Fx_gI,...
+                    single(controller.v_Fthruster_x(controller.Fx_U_Optimal_id)), obj.controller_InterpmodeF,'nearest');
+                obj.F_controller_y = griddedInterpolant(controller.Fy_gI,...
+                    single(controller.v_Fthruster_y(controller.Fy_U_Optimal_id)), obj.controller_InterpmodeF,'nearest');
+                obj.F_controller_z = griddedInterpolant(controller.Fz_gI,...
+                    single(controller.v_Fthruster_z(controller.Fz_U_Optimal_id)), obj.controller_InterpmodeF,'nearest');
+                
+            catch
+                warning('one controller defined for all channels, do not use for fault case...\n')
+            F_controller = griddedInterpolant(controller.F_gI,...
                 single(controller.v_Fthruster(controller.F_U_Optimal_id)), obj.controller_InterpmodeF,'nearest');
             
-            obj.M_controller_J1 = griddedInterpolant(controller.M_gI_J1,...
-                single(controller.v_Mthruster(controller.M_U_Optimal_id_J1)), obj.controller_InterpmodeM,'nearest');
-            obj.M_controller_J2 = griddedInterpolant(controller.M_gI_J2,...
-                single(controller.v_Mthruster(controller.M_U_Optimal_id_J2)), obj.controller_InterpmodeM,'nearest');
-            obj.M_controller_J3 = griddedInterpolant(controller.M_gI_J3,...
-                single(controller.v_Mthruster(controller.M_U_Optimal_id_J3)), obj.controller_InterpmodeM,'nearest');
+            obj.F_controller_x = F_controller;
+            obj.F_controller_y = F_controller;
+            obj.F_controller_z = F_controller;
+            end
             
-            obj.controller_params.Qx = controller.controller.Qx;
-            obj.controller_params.Qv = controller.controller.Qv;
-            obj.controller_params.Qt = controller.controller.Qt;
-            obj.controller_params.Qw = controller.controller.Qw;
-            obj.controller_params.R = controller.controller.R;
+            
+            obj.M_controller_J1 = griddedInterpolant(controller.M_gI_J1,...
+                single(controller.v_Mthruster_x(controller.M_U_Optimal_id_J1)), obj.controller_InterpmodeM,'nearest');
+            obj.M_controller_J2 = griddedInterpolant(controller.M_gI_J2,...
+                single(controller.v_Mthruster_y(controller.M_U_Optimal_id_J2)), obj.controller_InterpmodeM,'nearest');
+            obj.M_controller_J3 = griddedInterpolant(controller.M_gI_J3,...
+                single(controller.v_Mthruster_z(controller.M_U_Optimal_id_J3)), obj.controller_InterpmodeM,'nearest');
+            
+            obj.controller_params.controller = controller.controller;
         end
         
         function [M, a] = Opt_Force_Moments(obj, Xin, theta_, t_dot)
             if(~strcmp(obj.controller_params.type,'PID'))
                 % Dynamic Programming Controller
                 % Forces (expressed in body frame of reference)
-                a = (obj.F_controller( Xin(1:3)', Xin(4:6)')/obj.Mass); % X(1:3) represent position and X(4:6) velocities
+                a = zeros(3,1);
+                a(1) = (obj.F_controller_x( Xin(1), Xin(4))/obj.Mass); % X(1:3) represent position and X(4:6) velocities
+                a(2) = (obj.F_controller_y( Xin(2), Xin(5))/obj.Mass); %
+                a(3) = (obj.F_controller_z( Xin(3), Xin(6))/obj.Mass); %
+                
                 %Moments
                 M = zeros(3,1);
 %                 M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
@@ -791,11 +875,11 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             
         end
         
-        function [f0,f1,f6,f7] = QuadProg_allocation(obj, Freq, Mreq, f_comb)
+        function [f0,f1,f6,f7] = QuadProg_allocation(~, Freq, Mreq, f_comb, Weighting_Matrix)
         eF = sum(f_comb .* [1;1;-1;-1],1) - Freq; %repmat is implied (5-6x faster) as of MATLAB R2016b
         eM = sum(f_comb .* [1;-1;-1;1],1) - Mreq;
-        all_evals = (eF.*eF) * obj.active_set.Weighting_Matrix(1) + ...
-            (eM.*eM) * obj.active_set.Weighting_Matrix(4);
+        all_evals = (eF.*eF) * Weighting_Matrix(1) + ...
+            (eM.*eM) * Weighting_Matrix(4);
         
         [best_evaluation, best_evaluation_id] = min(all_evals, [], 2); %#ok<ASGLU>
         f0 = f_comb(1,best_evaluation_id);

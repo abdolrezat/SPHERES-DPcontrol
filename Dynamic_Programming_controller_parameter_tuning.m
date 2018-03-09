@@ -11,13 +11,27 @@ function Dynamic_Programming_controller_parameter_tuning(varargin)
     Thruster_max_F = 0.12/5; % (N)
     Thruster_dist = (9.65E-2); % (meters)
     Thruster_max_M = Thruster_max_F*Thruster_dist;
-    controller.lim_F = [-2*Thruster_max_F 2*Thruster_max_F];
-    controller.lim_M = [-2*Thruster_max_M 2*Thruster_max_M];
+    controller.lim_Fx = [-2*Thruster_max_F Thruster_max_F];
+    controller.lim_My = [-2*Thruster_max_M Thruster_max_M];
+    controller.lim_Fy = [-2*Thruster_max_F 2*Thruster_max_F];
+    controller.lim_Mz = [-2*Thruster_max_M 2*Thruster_max_M];
+    controller.lim_Fz = [-2*Thruster_max_F 2*Thruster_max_F];
+    controller.lim_Mx = [-2*Thruster_max_M 2*Thruster_max_M];
+    controller.n_mesh_Fx = 31;
+    controller.n_mesh_My = 31;
+    controller.n_mesh_Fy = 41;
+    controller.n_mesh_Mz = 41;
+    controller.n_mesh_Fz = 41;
+    controller.n_mesh_Mx = 41;
     
-    controller.Qx = 0.1;
-    controller.QvQx_ratio = 100;
-    controller.Qv = controller.QvQx_ratio * controller.Qx;
-    controller.Qt = 100;
+    controller.Qx1 = 2;
+    controller.Qv1Qx1_ratio = 600; %% decrease (to 300 maybe)
+    controller.Qx2 = 2;
+    controller.Qv2Qx2_ratio = 600; %% decrease (to 300 maybe)
+    controller.Qx3 = 2;
+    controller.Qv3Qx3_ratio = 600; %% decrease (to 300 maybe)
+    
+    controller.Qt = 3;
     controller.QwQt_ratio = 3; %mayb*e a little decrease
 % end
 %     
@@ -30,19 +44,22 @@ function Dynamic_Programming_controller_parameter_tuning(varargin)
     simulator_opts.current_controller = controller.name;
 simulator_opts.faulty_thruster_index = [0]; %index of faulty thruster(s) #0-#11
   simulator_opts.thruster_allocation_mode = 'quadratic programming pulse modulation-adaptive'; %'spheres pulse modulation' {'active set discrete', 'PWPF', 'Schmitt', 'none'}
-  simulator_opts.active_set.Weighting_Matrix = [1,0;...
-    0,0.8];
+  simulator_opts.Quad_Prog.Weighting_Matrix_1 = [1,0;...
+    0,0.95];
+  simulator_opts.Quad_Prog.Weighting_Matrix_2 = [1,0;...
+    0,0.9];
+  simulator_opts.Quad_Prog.Weighting_Matrix_3 = [1,0;...
+    0,0.9];
 simulator_opts.Thruster_max_F = 0.12; % (N)
 simulator_opts.h = 0.01; %simulation fixed time steps
   simulator_opts.T_final = 200; %simulation Tfinal
 
 %     for r=[1,2,3,4,5,6,7,9,10,12,14,15,16,17]
-%         for r=2:2:16
-for r=[0.6,1:30]
-% for r=8
+        for r=0.6
+% for r=[0.6,1:30]
+% for r=12
 % for r = [20,22,25,28,30,32]
 % for r = [0.6,1,10,20]
-%     for r = [6]
     dr0 = [-r 0 0]; %initial relative position offset
     dv0 = [0 0 0]; %initial relative velocity offset
     q0 = flip(angle2quat(deg2rad(0),deg2rad(0),deg2rad(0))); %initial angles offset (yaw,pitch,roll)
@@ -51,7 +68,7 @@ for r=[0.6,1:30]
 %  simulator_opts.defaultX0 = [-0.0734   -0.1612    0.0860   -0.0171   -0.0005   -0.0189   -0.2233   -0.2710    0.0843    0.9325    0.1187    0.0260   -0.0272]';
     S = simulation_fault_DP_noallocation(simulator_opts);
 %     S2 =simulation_fault_DP_noallocation_2(simulator_opts);
-    close all
+%     close all
     S.plot_optimal_path
 %     plot12(S2,S2)
     pause(.01)
@@ -71,7 +88,10 @@ function generate_Dynamic_Programming_controller(controller)%GENERATE_CONTROLLER
     %time variables
     controller.h = 1; % time step for controllers
     %Optimal Control constants
-    controller.Qv = controller.QvQx_ratio * controller.Qx;
+    controller.Qv1 = controller.Qv1Qx1_ratio * controller.Qx1;
+    controller.Qv2 = controller.Qv2Qx2_ratio * controller.Qx2;
+    controller.Qv3 = controller.Qv3Qx3_ratio * controller.Qx3;
+
     controller.Qw = controller.QwQt_ratio * controller.Qt;
     controller.R =  1.0;
 
@@ -79,7 +99,7 @@ function generate_Dynamic_Programming_controller(controller)%GENERATE_CONTROLLER
     controller.lim_x = [-40 40]; %in m
     controller.lim_v = [-1.5 1.5]; %in m/s
     controller.lim_t = deg2rad([-181 181]); %in degrees, converts to rad
-    controller.lim_w = deg2rad([-100 100]); %in rad/s% mesh generation , Force and Moments
+    controller.lim_w = deg2rad([-150 150]); %in rad/s% mesh generation , Force and Moments
 
     % mesh generation , mesh resolutions
     controller.n_mesh_x = 402;
@@ -87,8 +107,7 @@ function generate_Dynamic_Programming_controller(controller)%GENERATE_CONTROLLER
     controller.n_mesh_t = 502;
     controller.n_mesh_w = 500;
     
-    controller.n_mesh_F = 40;
-    controller.n_mesh_M = 40;
+
 % generate the controller
 generate_DP_ForceMoment_controller(controller)
 end
