@@ -7,7 +7,7 @@ function Dynamic_Programming_controller_parameter_tuning(varargin)
 
 %% generate controller
 % if nargin == 0
-    controller.name = 'controller_DP_attposition_testfault'; %name of controller, will be saved under /controller directory
+    controller.name = 'controller_DP_attposition_fault_thr0'; %name of controller, will be saved under /controller directory
     Thruster_max_F = 0.12/5; % (N)
     Thruster_dist = (9.65E-2); % (meters)
     Thruster_max_M = Thruster_max_F*Thruster_dist;
@@ -24,15 +24,15 @@ function Dynamic_Programming_controller_parameter_tuning(varargin)
     controller.n_mesh_Fz = 41;
     controller.n_mesh_Mx = 41;
     
-    controller.Qx1 = 2;
-    controller.Qv1Qx1_ratio = 600; %% decrease (to 300 maybe)
-    controller.Qx2 = 2;
-    controller.Qv2Qx2_ratio = 600; %% decrease (to 300 maybe)
-    controller.Qx3 = 2;
-    controller.Qv3Qx3_ratio = 600; %% decrease (to 300 maybe)
+    controller.Qx1 = 0.01;
+    controller.Qv1Qx1_ratio = 500; %% decrease (to 300 maybe)
+    controller.Qx2 = 1;
+    controller.Qv2Qx2_ratio = 200; %% decrease (to 300 maybe)
+    controller.Qx3 = 1;
+    controller.Qv3Qx3_ratio = 200; %% decrease (to 300 maybe)
     
-    controller.Qt = 3;
-    controller.QwQt_ratio = 3; %mayb*e a little decrease
+    controller.Qt = 1;
+    controller.QwQt_ratio = 5; %mayb*e a little decrease
 % end
 %     
     if(0)
@@ -44,22 +44,22 @@ function Dynamic_Programming_controller_parameter_tuning(varargin)
     simulator_opts.current_controller = controller.name;
 simulator_opts.faulty_thruster_index = [0]; %index of faulty thruster(s) #0-#11
   simulator_opts.thruster_allocation_mode = 'quadratic programming pulse modulation-adaptive'; %'spheres pulse modulation' {'active set discrete', 'PWPF', 'Schmitt', 'none'}
-  simulator_opts.Quad_Prog.Weighting_Matrix_1 = [1,0;...
-    0,0.95];
-  simulator_opts.Quad_Prog.Weighting_Matrix_2 = [1,0;...
-    0,0.9];
-  simulator_opts.Quad_Prog.Weighting_Matrix_3 = [1,0;...
-    0,0.9];
+%   simulator_opts.Quad_Prog.Weighting_Matrix_1 = [1,0;...
+%     0,0]; 
+%   simulator_opts.Quad_Prog.Weighting_Matrix_2 = [1,0;...
+%     0,0.93];
+%   simulator_opts.Quad_Prog.Weighting_Matrix_3 = [1,0;...
+%     0,0.93];
 simulator_opts.Thruster_max_F = 0.12; % (N)
 simulator_opts.h = 0.01; %simulation fixed time steps
   simulator_opts.T_final = 200; %simulation Tfinal
 
 %     for r=[1,2,3,4,5,6,7,9,10,12,14,15,16,17]
-        for r=0.6
-% for r=[0.6,1:30]
-% for r=12
+%         for r=[0.6,1,4]
+for r= [-1,1]
+% for r=[0.6,1,2,3,5,7,10,12]
 % for r = [20,22,25,28,30,32]
-% for r = [0.6,1,10,20]
+% for r = [0.6,1,4,10,20]
     dr0 = [-r 0 0]; %initial relative position offset
     dv0 = [0 0 0]; %initial relative velocity offset
     q0 = flip(angle2quat(deg2rad(0),deg2rad(0),deg2rad(0))); %initial angles offset (yaw,pitch,roll)
@@ -70,6 +70,7 @@ simulator_opts.h = 0.01; %simulation fixed time steps
 %     S2 =simulation_fault_DP_noallocation_2(simulator_opts);
 %     close all
     S.plot_optimal_path
+    S.plot_xy_plane
 %     plot12(S2,S2)
     pause(.01)
     end

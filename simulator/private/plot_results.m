@@ -246,29 +246,29 @@ end
         legend('\theta_1','\theta_2','\theta_3','integral(w2)')
                
          % plot states - angles from 3 quaternions conversion
-%         pos_fig_a = [973.0000+1  218.6000+1  518.4000+1  326.4000+1]-5;
-%         figure('Name','states - angles','Position',pos_fig_a)
-%         
-%         plot(T_ode45, theta1q2a*180/pi)
-%         hold on
-%         plot(T_ode45, theta2q2a*180/pi)
-%         plot(T_ode45, theta3q2a*180/pi)
-%         grid on
-%         legend('\theta_1','\theta_2','\theta_3')
-%                
+        pos_fig_a = [973.0000+1  218.6000+1  518.4000+1  326.4000+1]-5;
+        figure('Name','states - quat2angles','Position',pos_fig_a)
+        
+        plot(T_ode45, theta1q2a*180/pi)
+        hold on
+        plot(T_ode45, theta2q2a*180/pi)
+        plot(T_ode45, theta3q2a*180/pi)
+        grid on
+        legend('\theta_1','\theta_2','\theta_3')
+               
         
         % plot states - q
-        pos_fig_q = [973.0000  218.6000  518.4000  326.4000];
-        figure('Name','states - quaternions','Position',pos_fig_q)
-        title('states - quaternions')
-
-        plot(T_ode45, X_ode45(:,7))
-        hold on
-        plot(T_ode45, X_ode45(:,8))
-        plot(T_ode45, X_ode45(:,9))
-        plot(T_ode45, X_ode45(:,10))
-        grid on
-        legend('q1','q2','q3','q4')
+%         pos_fig_q = [973.0000  218.6000  518.4000  326.4000];
+%         figure('Name','states - quaternions','Position',pos_fig_q)
+%         title('states - quaternions')
+% 
+%         plot(T_ode45, X_ode45(:,7))
+%         hold on
+%         plot(T_ode45, X_ode45(:,8))
+%         plot(T_ode45, X_ode45(:,9))
+%         plot(T_ode45, X_ode45(:,10))
+%         grid on
+%         legend('q1','q2','q3','q4')
         
         % plot states - w
         pos_fig_w = [956.2000   47.4000  518.4000  326.4000];
@@ -288,19 +288,19 @@ end
         ylabel('rotational speed (deg/s)')
         
         % plot diff theta
-        figure('Name','theta diff','Position',pos_fig_w+3)
-        
-        plot(T_ode45, diff_t1,'-')
-        title('states - rotational speeds (deg/sec)')
-
-        hold on
-        plot(T_ode45, diff_t2,'-')
-        plot(T_ode45, diff_t3,'-')
-        grid on
-        legend('diff-t1','diff-t2','diff-t3')
-        
-        xlabel('time (s)')
-        ylabel('(deg/s)')
+%         figure('Name','theta diff','Position',pos_fig_w+3)
+%         
+%         plot(T_ode45, diff_t1,'-')
+%         title('states - rotational speeds (deg/sec)')
+% 
+%         hold on
+%         plot(T_ode45, diff_t2,'-')
+%         plot(T_ode45, diff_t3,'-')
+%         grid on
+%         legend('diff-t1','diff-t2','diff-t3')
+%         
+%         xlabel('time (s)')
+%         ylabel('(deg/s)')
         
         
 end

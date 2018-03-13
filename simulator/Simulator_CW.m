@@ -84,14 +84,70 @@ classdef Simulator_CW < handle
                 this.controller_InterpmodeM = simopts.controller_InterpmodeM;
                 this.thruster_allocation_mode = simopts.thruster_allocation_mode;
                 this.faulty_thruster_index = simopts.faulty_thruster_index;
-                this.quad_prog.Weighting_Matrix_1_default = simopts.Quad_Prog.Weighting_Matrix_1;
-                this.quad_prog.Weighting_Matrix_2_default = simopts.Quad_Prog.Weighting_Matrix_2;
-                this.quad_prog.Weighting_Matrix_3_default = simopts.Quad_Prog.Weighting_Matrix_3;
-                this.quad_prog.Weighting_Matrix_1 = this.quad_prog.Weighting_Matrix_1_default;
-                this.quad_prog.Weighting_Matrix_2 = this.quad_prog.Weighting_Matrix_2_default;
-                this.quad_prog.Weighting_Matrix_3 = this.quad_prog.Weighting_Matrix_3_default;
+%                 this.quad_prog.Weighting_Matrix_1_default = simopts.Quad_Prog.Weighting_Matrix_1;
+%                 this.quad_prog.Weighting_Matrix_2_default = simopts.Quad_Prog.Weighting_Matrix_2;
+%                 this.quad_prog.Weighting_Matrix_3_default = simopts.Quad_Prog.Weighting_Matrix_3;
+                this.quad_prog.Weighting_Matrix_F_default = [1, 0; 0, 0.93];
+                this.quad_prog.Weighting_Matrix_1 = this.quad_prog.Weighting_Matrix_F_default;
+                this.quad_prog.Weighting_Matrix_2 = this.quad_prog.Weighting_Matrix_F_default;
+                this.quad_prog.Weighting_Matrix_3 = this.quad_prog.Weighting_Matrix_F_default;
+                this.quad_prog.Weighting_Matrix_1_scheduled =  this.quad_prog.Weighting_Matrix_F_default;
+                this.quad_prog.Weighting_Matrix_2_scheduled =  this.quad_prog.Weighting_Matrix_F_default;
+                this.quad_prog.Weighting_Matrix_3_scheduled =  this.quad_prog.Weighting_Matrix_F_default;
+                
                 this.quad_prog.angle_up_bound = 140;
-                this.quad_prog.angle_low_bound = 120;
+                this.quad_prog.angle_low_bound = 90;
+                this.quad_prog.threshold_positive = 0.2;
+                this.quad_prog.threshold_negative = 0;
+                
+                % assign quadratic programming parameter interpolant based
+                % on which thruster(s) are failed
+                params_distances = [2 5 6 10];
+                params_values = [1.07 1.03 0.93 0.93]; % this determines Weighting_matrix(4)
+                params_distances_mirror = -params_distances(end:-1:1);
+                params_values_mirror = params_values(end:-1:1); % this determines Weighting_matrix(4)
+                %channel - x
+                if ismember(this.faulty_thruster_index, [0 1 6 7])
+                    if ismember(this.faulty_thruster_index, [0 1])
+                        params_distances_x = params_distances;
+                        params_values_x = params_values;
+                        this.quad_prog.bool_channel_fault.x01 = true;
+                    elseif ismember(this.faulty_thruster_index, [6 7])
+                        params_distances_x = params_distances_mirror;
+                        params_values_x = params_values_mirror;
+                        this.quad_prog.bool_channel_fault.x01 = false;
+                    end
+                    this.quad_prog.Fw1 = griddedInterpolant(params_distances_x , params_values_x, 'nearest','nearest');
+                end
+                
+                %channel - y
+                if ismember(this.faulty_thruster_index, [2 3 8 9])
+                    if ismember(this.faulty_thruster_index, [2 3])
+                        params_distances_y = params_distances;
+                        params_values_y = params_values;
+                        this.quad_prog.bool_channel_fault.y23 = true;
+                    elseif ismember(this.faulty_thruster_index, [8 9])
+                        params_distances_y = params_distances_mirror;
+                        params_values_y = params_values_mirror;
+                        this.quad_prog.bool_channel_fault.y23 = false;
+                    end
+                    this.quad_prog.Fw2 = griddedInterpolant(params_distances_y , params_values_y, 'nearest','nearest');
+                end
+                %channel - z
+                if ismember(this.faulty_thruster_index, [4 5 10 11])
+                    if ismember(this.faulty_thruster_index, [4 5])
+                        params_distances_z = params_distances;
+                        params_values_z = params_values;
+                        this.quad_prog.bool_channel_fault.z45 = true;
+                    elseif ismember(this.faulty_thruster_index, [10 11])
+                        params_distances_z = params_distances_mirror;
+                        params_values_z = params_values_mirror;
+                        this.quad_prog.bool_channel_fault.z45 = false;
+                    end
+                    this.quad_prog.Fw3 = griddedInterpolant(params_distances_z , params_values_z, 'nearest','nearest');
+                end
+                 
+                
 %                 % used to be
 %                 this.active_set.Weighting_Matrix = simopts.active_set.Weighting_Matrix;
 %                 this.active_set.Weighting_Matrix_default = simopts.active_set.Weighting_Matrix;
@@ -213,7 +269,9 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             else
                 this.bool_channel_fault.z = true;
             end
-            
+            this.quad_prog.bool_angleoverflow.x = 0;
+            this.quad_prog.bool_angleoverflow.y = 0;
+            this.quad_prog.bool_angleoverflow.z = 0;
             
             
             if( strcmpi(this.thruster_allocation_mode, 'quadratic programming pulse modulation') ||...
@@ -358,39 +416,100 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                             theta2 = 2*asin(X_stage(8))*180/pi;
                             if(obj.bool_channel_fault.x)%if channel has failed thrusters:
                                 if( abs(theta2) > obj.quad_prog.angle_up_bound)%Moment Control prioritized
-                                    obj.quad_prog.Weighting_Matrix_1(1) = 0;
-%                                     %% debug code block
-%                                     obj.quad_prog.Weighting_Matrix_2(1) = 0;
-%                                     obj.quad_prog.Weighting_Matrix_3(1) = 0;
-                                elseif(abs(theta2) < obj.quad_prog.angle_low_bound)%back to normal
-                                    obj.quad_prog.Weighting_Matrix_1 =  obj.quad_prog.Weighting_Matrix_1_default;
-%                                     %% debug code block
-%                                     obj.quad_prog.Weighting_Matrix_2 =  obj.quad_prog.Weighting_Matrix_2_default;
-%                                     obj.quad_prog.Weighting_Matrix_3=  obj.quad_prog.Weighting_Matrix_3_default;
+                                    obj.quad_prog.bool_angleoverflow.x = 1;
+                                else
+                                    if(abs(theta2) < obj.quad_prog.angle_low_bound)%back to normal
+                                        obj.quad_prog.bool_angleoverflow.x = 0;
+                                    end
+                                end
+                                
+                                if (obj.quad_prog.bool_channel_fault.x01)
+                                    if(X_stage(1) < -obj.quad_prog.threshold_positive)
+                                        obj.quad_prog.Weighting_Matrix_1_scheduled =  obj.quad_prog.Weighting_Matrix_F_default;
+                                    elseif (X_stage(1) > 0 )
+                                        obj.quad_prog.Weighting_Matrix_1_scheduled(4) =  obj.quad_prog.Fw1(X_stage(1));
+                                    end
+                                else
+                                    if(X_stage(1) > obj.quad_prog.threshold_positive)
+                                        obj.quad_prog.Weighting_Matrix_1_scheduled =  obj.quad_prog.Weighting_Matrix_F_default;
+                                    elseif (X_stage(1) < 0 )
+                                        obj.quad_prog.Weighting_Matrix_1_scheduled(4) =  obj.quad_prog.Fw1(X_stage(1));
+                                    end
+                                end
+                                
+                                if(obj.quad_prog.bool_angleoverflow.x)% (higher priority) moment control if angle
+                                % overflows
+%                                     obj.quad_prog.Weighting_Matrix_1(1) = 0;
+                                    obj.quad_prog.Weighting_Matrix_1(4) = 100; %10 is ok
+                                else
+                                    obj.quad_prog.Weighting_Matrix_1 = obj.quad_prog.Weighting_Matrix_1_scheduled;
                                 end
                             end
                             
                             % channel - y (Fy & Mz)
                             theta3 = 2*asin(X_stage(9))*180/pi;
                             if(obj.bool_channel_fault.y)%if channel has failed thrusters:
-                                if( abs(theta3) > obj.quad_prog.angle_up_bound) %Moment Control prioritized
-                                    obj.quad_prog.Weighting_Matrix_2(1) = 0;
-                                elseif(abs(theta3) < obj.quad_prog.angle_low_bound) %back to normal
-                                    obj.quad_prog.Weighting_Matrix_2 =  obj.quad_prog.Weighting_Matrix_2_default;
+                                if( abs(theta3) > obj.quad_prog.angle_up_bound)%Moment Control prioritized
+                                    obj.quad_prog.bool_angleoverflow.y = 1;
+                                else
+                                    if(abs(theta3) < obj.quad_prog.angle_low_bound)%back to normal
+                                        obj.quad_prog.bool_angleoverflow.y = 0;
+                                    end
+                                end
+                                
+                                 if (obj.quad_prog.bool_channel_fault.y23)
+                                        if(X_stage(2) < -obj.quad_prog.threshold_positive)
+                                            obj.quad_prog.Weighting_Matrix_2_scheduled =  obj.quad_prog.Weighting_Matrix_F_default;
+                                        elseif (X_stage(2) > 0 )
+                                            obj.quad_prog.Weighting_Matrix_2_scheduled(4) =  obj.quad_prog.Fw2(X_stage(2));
+                                        end
+                                    else
+                                        if(X_stage(2) > obj.quad_prog.threshold_positive)
+                                            obj.quad_prog.Weighting_Matrix_2 =  obj.quad_prog.Weighting_Matrix_F_default;
+                                        elseif (X_stage(2) < 0 )
+                                            obj.quad_prog.Weighting_Matrix_2(4) =  obj.quad_prog.Fw2(X_stage(2));
+                                        end
+                                 end
+                                    
+                                if(obj.quad_prog.bool_angleoverflow.y)
+                                    obj.quad_prog.Weighting_Matrix_2(4) = 100; %10 is ok
+                                else
+                                    obj.quad_prog.Weighting_Matrix_2 = obj.quad_prog.Weighting_Matrix_2_scheduled;
                                 end
                             end
+                           
                             
                             % channel - z (Fz & Mx)
                             theta1 = 2*asin(X_stage(7))*180/pi;
                             if(obj.bool_channel_fault.z)%if channel has failed thrusters:
-                                if( abs(theta1) > obj.quad_prog.angle_up_bound)
-                                    obj.quad_prog.Weighting_Matrix_3(1) = 0;
-                                elseif(abs(theta1) < obj.quad_prog.angle_low_bound)
-                                    obj.quad_prog.Weighting_Matrix_3 =  obj.quad_prog.Weighting_Matrix_3_default;
+                                if( abs(theta1) > obj.quad_prog.angle_up_bound)%Moment Control prioritized
+                                    obj.quad_prog.bool_angleoverflow.z = 1;
+                                else
+                                    if(abs(theta1) < obj.quad_prog.angle_low_bound)%back to normal
+                                        obj.quad_prog.bool_angleoverflow.z = 0;
+                                    end
+                                end
+                                
+                                if (obj.quad_prog.bool_channel_fault.z45)
+                                    if(X_stage(3) < -obj.quad_prog.threshold_positive)
+                                        obj.quad_prog.Weighting_Matrix_3_scheduled =  obj.quad_prog.Weighting_Matrix_F_default;
+                                    elseif (X_stage(3) > 0 )
+                                        obj.quad_prog.Weighting_Matrix_3_scheduled(4) =  obj.quad_prog.Fw3(X_stage(3));
+                                    end
+                                else
+                                    if(X_stage(3) > obj.quad_prog.threshold_positive)
+                                        obj.quad_prog.Weighting_Matrix_3_scheduled =  obj.quad_prog.Weighting_Matrix_F_default;
+                                    elseif (X_stage(3) < 0 )
+                                        obj.quad_prog.Weighting_Matrix_3_scheduled(4) =  obj.quad_prog.Fw3(X_stage(3));
+                                    end
+                                end
+                                
+                                if(obj.quad_prog.bool_angleoverflow.z)
+                                    obj.quad_prog.Weighting_Matrix_3(4) = 100; %10 is ok
+                                else
+                                    obj.quad_prog.Weighting_Matrix_3 = obj.quad_prog.Weighting_Matrix_3_scheduled;
                                 end
                             end
-                            
-
                            
                             % thruster firings allocation using the Quadratic Programming method
                             [f0,f1,f6,f7] = QuadProg_allocation(obj, B(1), B(5), ...
@@ -992,7 +1111,135 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             X2 = x + h_t*k1;
             X2 = X2';
           end
+          
+          function plot_xy_plane(obj)
+              n_sampling = 30;
+              a = 0.3;
+              sep = 1.2*a; %seperation distance for sampling points
+              col_g = 0.1;
+              col_gh = 0.05; % bold heading
+              head_LineWidth = 1.3;
+             x = obj.history.X_ode45(:,1);
+             y = obj.history.X_ode45(:,2);
+             [~,theta2q2a,~] = quat2angle(obj.history.X_ode45(:,10:-1:7));
+             theta2_c = 2*asin(obj.history.X_ode45(:,8));
+%              theta2q2a = theta2q2a *180/pi;
+             
+             % sampling points:
+             % method 1:
+             i_sampling = round(linspace(1,length(x), n_sampling));
+             % method 2: 
+             i_sampling = 1;
+             x0 = x(1);
+             %p0 = x(1)^2 + y(1)^2;
+             for counter = 1:length(x)
+                 if(abs(x(counter) - x0) > sep)
+                     %                  if(x(counter)^2 + y(counter)^2 - p0 > sep)
+                     i_sampling(end+1) = counter;
+                     x0 = x(counter);
+                     %                      p0 = x(counter)^2 + y(counter)^2;
+                     
+                 end
+             end
+             
+             [b,ixorigin] = min(x.^2 + y.^2);
+             i_sampling(end) = ixorigin;
+%              if(i_sampling(end) ~= counter)
+%                  i_sampling(end + 1) = counter;
+%              end
+             
+             x_samples = x(i_sampling);
+             y_samples = y(i_sampling);
+             t_samples = theta2q2a(i_sampling);
+%              t_samples = theta2_c(i_sampling);
+            
+             
+             
+             Px_a = [a,a,-a,-a];
+             Py_a = [a,-a,-a,a];
+             figure
+             %plot path
+             plot(x,y,'-','Color', [col_g col_g col_g])
+             hold on
+             % drawing squares
+             for ii= 1:length(i_sampling)
+                  x_s = x_samples(ii);
+                 y_s = y_samples(ii);
+                 t2_s = t_samples(ii);
+                  Px = x_s + cos(t2_s).*Px_a -sin(t2_s).*Py_a;
+                 Py = y_s + sin(t2_s).*Px_a+cos(t2_s).*Py_a;
+                 %center of mass
+                 plot(x_s,y_s,'o','Color', [col_g col_g col_g])
+                 %three grey body lines
+                plot(Px([2,3,4,1]),Py([2,3,4,1]),'Color', [col_g col_g col_g])
+               
+                %heading line
+                plot(Px([1,2]), Py([1,2]),'Color', [col_gh col_gh col_gh], 'LineWidth', head_LineWidth)
+             end
+             axis equal
+             grid on
+             xlabel('x')
+             ylabel('y')
+             q = gca;
+             q.GridLineStyle = '--';
+             q.GridAlpha = 0.3;
+             
+             %draw arrows
+             x1 = x_samples(1);
+             x2 = x_samples(2);
+             
+             y1 = y_samples(1);
+             y2 = y_samples(2);
+%              [figx figy] = dsxy2figxy([x1 y1],[x2 y2]) ;
+%              arrowObj = annotation('arrow', [0.1 0.1], [0.5 0.5]);
+%              set(arrowObj, 'Units', 'centimeters');
+%              set(arrowObj, 'Position', [x1 y1 x2 y2]);
+%              annotation(gcf,'arrow', figx,figy)
+
+             drawArrow = @(x,y, varargin) quiver( x(1),y(1),x(2)-x(1),y(2)-y(1), varargin{:});    
+             hq = drawArrow([x1,x2],...
+                 [y1,y2], 'Color', [col_g col_g col_g], 'MaxHeadSize', 15);
+%              U = hq.UData;
+%              V = hq.VData;
+%              X = hq.XData;
+%              Y = hq.YData;
+%              LineLength = 0.08;
+%              headLength = 8;
+
+%              for ii = 1:length(X)
+%                  for ij = 1:length(X)
+%                      
+%                      headWidth = 5;
+%                      ah = annotation('arrow',...
+%                          'headStyle','cback1','HeadLength',headLength,'HeadWidth',headWidth);
+%                      set(ah,'parent',gca);
+%                      set(ah,'position',[X(ii,ij) Y(ii,ij) LineLength*U(ii,ij) LineLength*V(ii,ij)]);
+%                      
+%                  end
+%              end
+             
+             % or use annotation arrows
+%              
+%              annotation(gcf,'arrow', xf,yf)
+             %              headWidth = 5;
+%              ah = annotation('arrow',...
+%                  'headStyle','cback1','HeadLength',headLength,'HeadWidth',headWidth);
+%              set(ah,'parent',gca);
+%              set(ah,'position',[x_arrow y_arrow LineLength*U(ii,ij) LineLength*V(ii,ij)]);
+
         
+             
+%              for ii= 1:n_sampling
+%                  x_s = x_samples(ii);
+%                  y_s = y_samples(ii);
+%                  t2_s = theta2q2a_s(ii);
+%              polyin = polyshape(Px,Py);
+%              poly2(ii) = rotate(polyin,t2_s,[x_s y_s]);
+%              end
+%              plot(poly2)
+%              axis equal
+             
+          end
           
     end
     
