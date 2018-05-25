@@ -33,14 +33,16 @@ end
 % theta as angles
 [theta1q2a,theta2q2a,theta3q2a] = quat2angle(X_ode45(:,10:-1:7));
 % single rotation thetas as  controller 'sees' them:
-theta1 = 2*asin(X_ode45(:,7))*180/pi;
-theta2 = 2*asin(X_ode45(:,8))*180/pi;
-theta3 = 2*asin(X_ode45(:,9))*180/pi;
-                
+theta1 = obj.history.Theta_history(:,1)*180/pi;      
+theta2 = obj.history.Theta_history(:,2)*180/pi; 
+theta3 = obj.history.Theta_history(:,3)*180/pi; 
+          
 diff_t1 = [0; diff(theta1)]/obj.h;
 diff_t2 = [0; diff(theta2)]/obj.h;
 diff_t3 = [0; diff(theta3)]/obj.h;
-
+diff_t1(abs(diff_t1) > 100) = NaN;
+diff_t2(abs(diff_t2) > 100) = NaN;
+diff_t3(abs(diff_t3) > 100) = NaN;
 
 if(0) %skip
     
@@ -228,18 +230,18 @@ end
         xlabel('time (s)')
         ylabel('velocity (m/s)')
         
-         % plot states - q
-        pos_fig_q = [973.0000  218.6000  518.4000  326.4000];
-        figure('Name','states - quaternions','Position',pos_fig_q)
-        title('states - quaternions')
-
-        plot(T_ode45, X_ode45(:,7))
-        hold on
-        plot(T_ode45, X_ode45(:,8))
-        plot(T_ode45, X_ode45(:,9))
-        plot(T_ode45, X_ode45(:,10))
-        grid on
-        legend('q1','q2','q3','q4')
+%          % plot states - q
+%         pos_fig_q = [973.0000  218.6000  518.4000  326.4000];
+%         figure('Name','states - quaternions','Position',pos_fig_q)
+%         title('states - quaternions')
+% 
+%         plot(T_ode45, X_ode45(:,7))
+%         hold on
+%         plot(T_ode45, X_ode45(:,8))
+%         plot(T_ode45, X_ode45(:,9))
+%         plot(T_ode45, X_ode45(:,10))
+%         grid on
+%         legend('q1','q2','q3','q4')
         
         
          % plot states - angles
@@ -290,20 +292,64 @@ end
         xlabel('time (s)')
         ylabel('rotational speed (deg/s)')
         
-        % plot diff theta
-%         figure('Name','theta diff','Position',pos_fig_w+3)
-%         
-%         plot(T_ode45, diff_t1,'-')
-%         title('states - rotational speeds (deg/sec)')
-% 
-%         hold on
-%         plot(T_ode45, diff_t2,'-')
-%         plot(T_ode45, diff_t3,'-')
-%         grid on
-%         legend('diff-t1','diff-t2','diff-t3')
-%         
-%         xlabel('time (s)')
-%         ylabel('(deg/s)')
         
+%         id = abs(t2_from_trapz_w2) > 180;
+%         t2_new = theta2;
+%         t2_new(id) = -t2_new(id);
+%         figure
+%         plot(T_ode45,t2_new)
+        
+        figure('Name','controller angles','Position',pos_fig_w)
+        title('Controller Angles input')
+
+        plot(T_ode45,obj.history.Theta_history(:,1)*180/pi);
+        hold on
+        plot(T_ode45,obj.history.Theta_history(:,2)*180/pi);
+        plot(T_ode45,obj.history.Theta_history(:,3)*180/pi);
+        grid on
+        legend('\theta_1','\theta_2','\theta_3')
+        
+        [X,Y,Z] = quat_eul(X_ode45(:,10:-1:7));
+        figure('Name','angles quat eul','Position',pos_fig_w)
+        title('Quat Eul conv')
+
+        plot(T_ode45,X);
+        hold on
+        plot(T_ode45,Y);
+        plot(T_ode45,Z);
+        grid on
+        legend('\phi','\theta','sai')
+        
+%         
+%         plot diff theta
+        figure('Name','theta diff','Position',pos_fig_w+3)
+        
+        plot(T_ode45, diff_t1,'-')
+        title('states - rotational speeds (deg/sec)')
+
+        hold on
+        plot(T_ode45, diff_t2,'-')
+        plot(T_ode45, diff_t3,'-')
+        grid on
+        legend('diff-t1','diff-t2','diff-t3')
+        
+        xlabel('time (s)')
+        ylabel('(deg/s)')
+        
+        eul = quat2eul(X_ode45(:,10:-1:7));
+        
+        figure('Name','quat2eul','Position',pos_fig_w+3)
+        
+        plot(T_ode45, eul(:,1)*180/pi,'-')
+        title('quat to eul')
+
+        hold on
+        plot(T_ode45, eul(:,2)*180/pi,'-')
+        plot(T_ode45, eul(:,3)*180/pi,'-')
+        grid on
+        legend('\phi','\theta','sai')
+        
+        xlabel('time (s)')
+        ylabel('(deg)')
         
 end
