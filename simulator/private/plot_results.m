@@ -6,9 +6,10 @@ F_Th_Opt = obj.history.F_Th_Opt;
 Force_Moment_log_req = obj.history.Force_Moment_log_req;
 
 %% calculate fuel consumption
-FC_history = cumsum(F_Th_Opt)/max(F_Th_Opt(:));
+Thr_force = max(F_Th_Opt(:));
+FC_history = cumsum(F_Th_Opt)/Thr_force;
 FC_total = sum(FC_history(end,:));
-fprintf('Total Thruster-On Time (Fuel Consumption) = %.3f seconds\n', FC_total*0.005)
+fprintf('Total Thruster-On Time (Fuel Consumption) = %.3f seconds\n', FC_total*obj.h)
 
 %% calculate Quadratic Cost function
 try %#ok<*TRYNC>
@@ -227,6 +228,20 @@ end
         xlabel('time (s)')
         ylabel('velocity (m/s)')
         
+         % plot states - q
+        pos_fig_q = [973.0000  218.6000  518.4000  326.4000];
+        figure('Name','states - quaternions','Position',pos_fig_q)
+        title('states - quaternions')
+
+        plot(T_ode45, X_ode45(:,7))
+        hold on
+        plot(T_ode45, X_ode45(:,8))
+        plot(T_ode45, X_ode45(:,9))
+        plot(T_ode45, X_ode45(:,10))
+        grid on
+        legend('q1','q2','q3','q4')
+        
+        
          % plot states - angles
         pos_fig_a = [973.0000  218.6000  518.4000  326.4000]+10;
         figure('Name','states - angles','Position',pos_fig_a)
@@ -257,19 +272,7 @@ end
         legend('\theta_1','\theta_2','\theta_3')
                
         
-        % plot states - q
-%         pos_fig_q = [973.0000  218.6000  518.4000  326.4000];
-%         figure('Name','states - quaternions','Position',pos_fig_q)
-%         title('states - quaternions')
-% 
-%         plot(T_ode45, X_ode45(:,7))
-%         hold on
-%         plot(T_ode45, X_ode45(:,8))
-%         plot(T_ode45, X_ode45(:,9))
-%         plot(T_ode45, X_ode45(:,10))
-%         grid on
-%         legend('q1','q2','q3','q4')
-        
+       
         % plot states - w
         pos_fig_w = [956.2000   47.4000  518.4000  326.4000];
         figure('Name','states - rotational speeds','Position',pos_fig_w)
