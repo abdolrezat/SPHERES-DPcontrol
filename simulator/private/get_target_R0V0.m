@@ -3,11 +3,12 @@ mu = 398600;
 RE  = 6378;
 %...Input data:
 %   Prescribed initial orbital parameters of target A:
-rp    = RE + 300;
-e     = 0.1;
-i     = 0;
-RA    = 0;
-omega = 0;
+%% ** ISS orbit parameters reported 29 April 2018 12:34:07
+rp    = RE + 403; % http://heavens-above.com/orbit.aspx?satid=25544
+e     = 0.0002809;
+i     = deg2rad(51.6390); %inclination
+RA    = deg2rad(261.3053); %right ascension of ascending node
+omega = deg2rad(57.9013); %argument of perigee
 theta = 0;
 %   Additional computed parameters:
 ra = rp*(1 + e)/(1 - e);
