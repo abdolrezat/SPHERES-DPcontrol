@@ -7,27 +7,27 @@ function Dynamic_Programming_controller_parameter_tuning(varargin)
 
 %% generate controller
 % if nargin == 0
-    controller.name = 'controller_DP_attposition_fault_thr0'; %name of controller, will be saved under /controller directory
+    controller.name = 'controller_DP_attposition_fault_thr2'; %name of controller, will be saved under /controller directory
     Thruster_max_F = 0.12/5; % (N)
     Thruster_dist = (9.65E-2); % (meters)
     Thruster_max_M = Thruster_max_F*Thruster_dist;
-    controller.lim_Fx = [-2*Thruster_max_F Thruster_max_F];
-    controller.lim_My = [-2*Thruster_max_M Thruster_max_M];
-    controller.lim_Fy = [-2*Thruster_max_F 2*Thruster_max_F];
-    controller.lim_Mz = [-2*Thruster_max_M 2*Thruster_max_M];
+    controller.lim_Fx = [-2*Thruster_max_F 2*Thruster_max_F];
+    controller.lim_My = [-2*Thruster_max_M 2*Thruster_max_M];
+    controller.lim_Fy = [-2*Thruster_max_F Thruster_max_F];
+    controller.lim_Mz = [-2*Thruster_max_M Thruster_max_M];
     controller.lim_Fz = [-2*Thruster_max_F 2*Thruster_max_F];
     controller.lim_Mx = [-2*Thruster_max_M 2*Thruster_max_M];
-    controller.n_mesh_Fx = 31;
-    controller.n_mesh_My = 31;
-    controller.n_mesh_Fy = 41;
-    controller.n_mesh_Mz = 41;
+    controller.n_mesh_Fx = 41;
+    controller.n_mesh_My = 41;
+    controller.n_mesh_Fy = 31;
+    controller.n_mesh_Mz = 31;
     controller.n_mesh_Fz = 41;
     controller.n_mesh_Mx = 41;
     
-    controller.Qx1 = 0.01;
-    controller.Qv1Qx1_ratio = 500; %% decrease (to 300 maybe)
-    controller.Qx2 = 1;
-    controller.Qv2Qx2_ratio = 200; %% decrease (to 300 maybe)
+    controller.Qx1 = 1;
+    controller.Qv1Qx1_ratio = 200; %% decrease (to 300 maybe)
+    controller.Qx2 = 0.01;
+    controller.Qv2Qx2_ratio = 500; %% decrease (to 300 maybe)
     controller.Qx3 = 1;
     controller.Qv3Qx3_ratio = 200; %% decrease (to 300 maybe)
     
@@ -35,7 +35,7 @@ function Dynamic_Programming_controller_parameter_tuning(varargin)
     controller.QwQt_ratio = 5; %mayb*e a little decrease
 % end
 %     
-    if(0)
+    if(1)
         generate_Dynamic_Programming_controller(controller)
         test_surface(controller.name)
     end
@@ -56,7 +56,7 @@ simulator_opts.h = 0.01; %simulation fixed time steps
 
 %     for r=[1,2,3,4,5,6,7,9,10,12,14,15,16,17]
 %         for r=[0.6,1,4]
-for r= [-1,1]
+for r= -10
 % for r=[0.6,1,2,3,5,7,10,12]
 % for r = [20,22,25,28,30,32]
 % for r = [0.6,1,4,10,20]
@@ -99,7 +99,7 @@ function generate_Dynamic_Programming_controller(controller)%GENERATE_CONTROLLER
     % mesh generation , limits
     controller.lim_x = [-40 40]; %in m
     controller.lim_v = [-1.5 1.5]; %in m/s
-    controller.lim_t = deg2rad([-181 181]); %in degrees, converts to rad
+    controller.lim_t = deg2rad([-200 200]); %in degrees, converts to rad
     controller.lim_w = deg2rad([-150 150]); %in rad/s% mesh generation , Force and Moments
 
     % mesh generation , mesh resolutions
