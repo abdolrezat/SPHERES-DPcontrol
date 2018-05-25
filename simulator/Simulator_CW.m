@@ -59,6 +59,7 @@ classdef Simulator_CW < handle
         thr_program
         thr_program_counter
         bool_channel_fault
+        WL
     end
     
     methods
@@ -87,7 +88,11 @@ classdef Simulator_CW < handle
 %                 this.quad_prog.Weighting_Matrix_1_default = simopts.Quad_Prog.Weighting_Matrix_1;
 %                 this.quad_prog.Weighting_Matrix_2_default = simopts.Quad_Prog.Weighting_Matrix_2;
 %                 this.quad_prog.Weighting_Matrix_3_default = simopts.Quad_Prog.Weighting_Matrix_3;
+                if strcmp(this.mode,'normal') == 1
+                this.quad_prog.Weighting_Matrix_F_default = [1, 0; 0, 10];
+                else
                 this.quad_prog.Weighting_Matrix_F_default = [1, 0; 0, 0.93];
+                end
                 this.quad_prog.Weighting_Matrix_1 = this.quad_prog.Weighting_Matrix_F_default;
                 this.quad_prog.Weighting_Matrix_2 = this.quad_prog.Weighting_Matrix_F_default;
                 this.quad_prog.Weighting_Matrix_3 = this.quad_prog.Weighting_Matrix_F_default;
@@ -193,6 +198,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             try
                 simopts.PWPF1; %if doesn't exist
             catch
+                try
                 simopts.PWPF1 = simopts.PWPF;
                 simopts.PWPF2 = simopts.PWPF;
                 simopts.PWPF3 = simopts.PWPF;
@@ -205,9 +211,12 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 simopts.schmitt4 = simopts.schmitt;
                 simopts.schmitt5 = simopts.schmitt;
                 simopts.schmitt6 = simopts.schmitt;
+                catch
+                   % 
+                end
             end
             
-            
+            try
             %6x schmitt trigger objects
             this.schmitt_trigger1 = Schmitt_trigger_c(...
                 simopts.schmitt1.Uout,simopts.schmitt1.Uon,simopts.schmitt1.Uoff);
@@ -241,6 +250,9 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             this.PWPF6 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
                 simopts.PWPF6.Km, simopts.PWPF6.Tm, simopts.PWPF6.h, ...
                 simopts.schmitt6.Uout, simopts.schmitt6.Uon, simopts.schmitt6.Uoff, simopts.PWPF6.H_feed);
+            catch
+                %
+            end
             
             % control allocation function to thrusters, from all combinations of Forces
             % and Moments that can be generated with the operating thrusters
@@ -298,6 +310,11 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
 %             Ms2 = sum(this.thrust_combs.f2389 .* [1;-1;-1;1],1);
 %             plot(Fs,Ms,'r.'),hold on
 %             plot(Fs2,Ms2,'bx')
+            params.Rorbit = 6378+400;
+            params.mu = 398600;
+            params.n = sqrt(params.mu/params.Rorbit^3); % angular velocity of the LRF
+
+            this.WL = params.n;  %ISS orbit angular speed (RSW frame), verified
             
         end
         
@@ -732,12 +749,16 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             Theta_ = 2*asin(X_ode45(1,7:9)); 
             Theta_dot = X_ode45(1,11:13); 
             % Calculate the target initial state vector
+            %% for linearized equations
             [R0,V0] = get_target_R0V0();
+            %% 
+            
 %             tic
             for k_stage=1:N_total_sim-1
                 %determine F_Opt each Thruster
                 X_stage = X_ode45(k_stage,:);
                 q_stage = X_stage(7:10);
+                %% for linearized equations
                 % pre-computations
                 [R,V] = update_RV_target(R0, V0, tspan(k_stage));
                 obj.norm_R = (R*R')^.5; %norm R
@@ -746,12 +767,13 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                     R(3).*V(1)-R(1).*V(3);
                     R(1).*V(2)-R(2).*V(1)];
                 obj.H  = (crossRV'*crossRV)^.5 ; %norm(crossRV);
+                %%
                 
                 % required (Optimal) moments (U_M) and directional accelerations (a_* |x,y,z|) with
                 % respect to RSW frame
                 [U_M_req, a_req] = Opt_Force_Moments(obj,X_stage,Theta_,Theta_dot);
                 %rotation matrices
-                rotM_RSW2ECI = RSW2ECI(obj, R0, V0);
+                rotM_RSW2ECI = RSW2ECI(obj, R, V);
                 rotM_ECI2body = ECI2body(obj,q_stage);
                 % required directional accelerations in Body frame of reference
                 a_Body_req = rotM_ECI2body*rotM_RSW2ECI*  a_req;
@@ -788,7 +810,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 %update rotational speed feedbacks for controllers (thetadots)
                 temp_theta_new = 2*asin(X_ode45(k_stage+1,7:9));
 %                 Theta_dot = (temp_theta_new - Theta_)/obj.h; %rad/s
-                Theta_dot = X_ode45(k_stage+1,11:13); %rad/s
+                Theta_dot = X_ode45(k_stage+1,11:13); %w in rad/s
                 Theta_ = temp_theta_new;
 %% new test code block
 %                 t2_from_trapz_w2 = cumtrapz(T_ode45,X_ode45(:,12));
@@ -940,7 +962,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
 %                 M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
 %                 M(2) = obj.M_controller_J2( 2*asin(Xin(8)) , Xin(12) ); %where X(11:13) represent rotational speeds
 %                 M(3) = obj.M_controller_J3( 2*asin(Xin(9)) , Xin(13) ); %where X(11:13) represent rotational speeds
-                %% instead of using w1,w2,w3, we feed theta dot as rotational speed to the controllers
+                %  w1,w2,w3 same as above
                 M(1) = obj.M_controller_J1( theta_(1) , t_dot(1) ); %where X(11:13) represent rotational speeds
                 M(2) = obj.M_controller_J2( theta_(2) , t_dot(2) ); %where X(11:13) represent rotational speeds
                 M(3) = obj.M_controller_J3( theta_(3) , t_dot(3) ); %where X(11:13) represent rotational speeds                
@@ -1039,10 +1061,12 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
         end
         
         function X_dot = system_dynamics(obj, X)
+            %% for linearized equations
             mu_ = obj.mu;
             norm_R_ = obj.norm_R;
             H_ = obj.H;
             RdotV_ = obj.RdotV;
+            %
             
             x1 = X(1);
             x2 = X(2);
@@ -1068,13 +1092,19 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             X_dot(3) = v3;
             
             % position - v (a_x,y,z are in RSW frame of reference)
+            %% for linearized equations
             X_dot(4) =  (2*mu_/norm_R_^3 + H_^2/norm_R_^4)*x1 - 2*RdotV_/norm_R_^4*H_*x2 + 2*H_/norm_R_^2*v2 ...
                 + obj.a_x;
             X_dot(5) = -(mu_/norm_R_^3 - H_^2/norm_R_^4)*x2 + 2*RdotV_/norm_R_^4*H_*x1 - 2*H_/norm_R_^2*v1 ...
                 + obj.a_y;
             X_dot(6) = -mu_/norm_R_^3*x3 ...
                 + obj.a_z;
+%             %% CW equations instead
+%             X_dot(4) =  3*obj.WL^2*x1 + 2*obj.WL*v2;
+%             X_dot(5) =  -2*obj.WL*v1;
+%             X_dot(6) =  -obj.WL^2*x3;
             
+
             % attitude - q
             X_dot(7) = 0.5*(w3.*q2 -w2.*q3 +w1.*q4);
             X_dot(8) = 0.5*(-w3.*q1 +w1.*q3 +w2.*q4);
