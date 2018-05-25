@@ -61,12 +61,12 @@ if(0) %skip
         % colormap('winter')
         hold on, plot3(t3,w3,M3,'m:', 'LineWidth',2.0);
     end
-    
 end
 %% plot Thruster Firings
         ylim_thr = [-.15 .15];
         pos_fig_thruster = [7.4000   61.8000  538.4000  712.8000];
-        figure('Name','Thruster Firings','Position',pos_fig_thruster)
+        figure('Name','Thruster Firings','Position',pos_fig_thruster,...
+    'color', 'white')
         subplot(4,3,1)
         plot(T_ode45, F_Th_Opt(:,1))
         title('#0 (x)')
@@ -145,7 +145,8 @@ end
         ylim_F = [-0.3 0.3]/obj.Mass;
         ylim_M = [-0.3 0.3]*obj.T_dist;
         pos_fig_FM = [547.4000  449.8000  518.4000  326.4000];
-        figure('Name','Forces and Moments','Position',pos_fig_FM)
+        figure('Name','Forces and Moments','Position',pos_fig_FM,...
+    'color', 'white')
         
         subplot(3,2,1)
         plot(T_ode45, Force_Moment_log(:,1))
@@ -204,7 +205,8 @@ end
         
         % plot states - pos
         pos_fig_x = [543.4000   49.0000  518.4000  326.4000];
-        figure('Name','states - position','Position',pos_fig_x)
+        figure('Name','states - position','Position',pos_fig_x,...
+    'color', 'white')
         title('states - position (m)')
         plot(T_ode45, X_ode45(:,1))
         hold on
@@ -217,7 +219,8 @@ end
         
         % plot states - v
         pos_fig_v = [954.6000  446.6000  518.4000  326.4000];
-        figure('Name','states - velocity','Position',pos_fig_v)
+        figure('Name','states - velocity','Position',pos_fig_v,...
+    'color', 'white')
         title('states - velocity (m/s)')
 
         plot(T_ode45, X_ode45(:,4))
@@ -232,7 +235,8 @@ end
         
 %          % plot states - q
 %         pos_fig_q = [973.0000  218.6000  518.4000  326.4000];
-%         figure('Name','states - quaternions','Position',pos_fig_q)
+%         figure('Name','states - quaternions','Position',pos_fig_q,...
+%     'color', 'white')
 %         title('states - quaternions')
 % 
 %         plot(T_ode45, X_ode45(:,7))
@@ -246,7 +250,8 @@ end
         
          % plot states - angles
         pos_fig_a = [973.0000  218.6000  518.4000  326.4000]+10;
-        figure('Name','states - angles','Position',pos_fig_a)
+        figure('Name','states - angles','Position',pos_fig_a,...
+    'color', 'white')
         
         plot(T_ode45, theta1)
         hold on
@@ -264,7 +269,8 @@ end
                
          % plot states - angles from 3 quaternions conversion
         pos_fig_a = [973.0000+1  218.6000+1  518.4000+1  326.4000+1]-5;
-        figure('Name','states - quat2angles','Position',pos_fig_a)
+        figure('Name','states - quat2angles','Position',pos_fig_a,...
+    'color', 'white')
         
         plot(T_ode45, theta1q2a*180/pi)
         hold on
@@ -277,7 +283,8 @@ end
        
         % plot states - w
         pos_fig_w = [956.2000   47.4000  518.4000  326.4000];
-        figure('Name','states - rotational speeds','Position',pos_fig_w)
+        figure('Name','states - rotational speeds','Position',pos_fig_w,...
+    'color', 'white')
         
         plot(T_ode45, X_ode45(:,11)*180/pi)
         title('states - rotational speeds (deg/sec)')
@@ -299,7 +306,8 @@ end
 %         figure
 %         plot(T_ode45,t2_new)
         
-        figure('Name','controller angles','Position',pos_fig_w)
+        figure('Name','controller angles','Position',pos_fig_w,...
+    'color', 'white')
         title('Controller Angles input')
 
         plot(T_ode45,obj.history.Theta_history(:,1)*180/pi);
@@ -310,7 +318,8 @@ end
         legend('\theta_1','\theta_2','\theta_3')
         
         [X,Y,Z] = quat_eul(X_ode45(:,10:-1:7));
-        figure('Name','angles quat eul','Position',pos_fig_w)
+        figure('Name','angles quat eul','Position',pos_fig_w,...
+    'color', 'white')
         title('Quat Eul conv')
 
         plot(T_ode45,X);
@@ -322,7 +331,8 @@ end
         
 %         
 %         plot diff theta
-        figure('Name','theta diff','Position',pos_fig_w+3)
+        figure('Name','theta diff','Position',pos_fig_w+3,...
+    'color', 'white')
         
         plot(T_ode45, diff_t1,'-')
         title('states - rotational speeds (deg/sec)')
@@ -338,7 +348,8 @@ end
         
         eul = quat2eul(X_ode45(:,10:-1:7));
         
-        figure('Name','quat2eul','Position',pos_fig_w+3)
+        figure('Name','quat2eul','Position',pos_fig_w+3,...
+    'color', 'white')
         
         plot(T_ode45, eul(:,1)*180/pi,'-')
         title('quat to eul')
