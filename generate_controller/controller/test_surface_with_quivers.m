@@ -19,21 +19,21 @@ path_ = strjoin(path_(1:end-1),'\');
 controller = load(strcat(path_,'\',filename));
 
 % %create surfaces
-F_controller = griddedInterpolant(controller.F_gI,...
-    single(controller.v_Fthruster(controller.F_U_Optimal_id)), 'linear','nearest');
+F_controller = griddedInterpolant(controller.Fx_gI,...
+    single(controller.v_Fthruster_x(controller.Fx_U_Optimal_id)), 'linear','nearest');
 
 % M_controller_J1 = griddedInterpolant(controller.M_gI_J1,...
 %     single(controller.v_Mthruster(controller.M_U_Optimal_id_J1)), 'linear','nearest');
 % M_controller_J2 = griddedInterpolant(controller.M_gI_J2,...
 %     single(controller.v_Mthruster(controller.M_U_Optimal_id_J2)), 'linear','nearest');
 M_controller_J3 = griddedInterpolant(controller.M_gI_J3,...
-    single(controller.v_Mthruster(controller.M_U_Optimal_id_J3)), 'linear','nearest');
+    single(controller.v_Mthruster_z(controller.M_U_Optimal_id_J3)), 'linear','nearest');
 
 %plots
 figure
 
-XF1 = repmat(controller.F_gI{1}', [1 length(controller.F_gI{2})]);
-XF2 = repmat(controller.F_gI{2}, [length(controller.F_gI{1}) 1]);
+XF1 = repmat(controller.Fx_gI{1}', [1 length(controller.Fx_gI{2})]);
+XF2 = repmat(controller.Fx_gI{2}, [length(controller.Fx_gI{1}) 1]);
 UF = F_controller.Values;
 
 [x_next,v_next] = next_stage_states_simplified(XF1, XF2, UF, 0.005 ,4.16);
