@@ -248,37 +248,37 @@ end
 %         legend('q1','q2','q3','q4')
         
         
-         % plot states - angles
-        pos_fig_a = [973.0000  218.6000  518.4000  326.4000]+10;
-        figure('Name','states - angles','Position',pos_fig_a,...
-    'color', 'white')
-        
-        plot(T_ode45, theta1)
-        hold on
-        plot(T_ode45, theta2)
-        plot(T_ode45, theta3)
-        grid on
-            %plot w2 cumulative sum
-            w2 =  X_ode45(:,12)*180/pi;
-%             cumsum_diff_t2 = cumsum(diff_t2)/(length(diff_t2)-1)*180;%  theta2 =
-%            t2_from_intw2 = cumsum(w2)/(length(w2)-1)*180;
-            t2_from_trapz_w2 = cumtrapz(T_ode45,w2);
-        plot(T_ode45,t2_from_trapz_w2,'--r')
-        
-        legend('\theta_1','\theta_2','\theta_3','integral(w2)')
+%          % plot states - angles
+%         pos_fig_a = [973.0000  218.6000  518.4000  326.4000]+10;
+%         figure('Name','states - angles','Position',pos_fig_a,...
+%     'color', 'white')
+%         
+%         plot(T_ode45, theta1)
+%         hold on
+%         plot(T_ode45, theta2)
+%         plot(T_ode45, theta3)
+%         grid on
+%             %plot w2 cumulative sum
+%             w2 =  X_ode45(:,12)*180/pi;
+% %             cumsum_diff_t2 = cumsum(diff_t2)/(length(diff_t2)-1)*180;%  theta2 =
+% %            t2_from_intw2 = cumsum(w2)/(length(w2)-1)*180;
+%             t2_from_trapz_w2 = cumtrapz(T_ode45,w2);
+%         plot(T_ode45,t2_from_trapz_w2,'--r')
+%         
+%         legend('\theta_1','\theta_2','\theta_3','integral(w2)')
                
-         % plot states - angles from 3 quaternions conversion
-        pos_fig_a = [973.0000+1  218.6000+1  518.4000+1  326.4000+1]-5;
-        figure('Name','states - quat2angles','Position',pos_fig_a,...
-    'color', 'white')
-        
-        plot(T_ode45, theta1q2a*180/pi)
-        hold on
-        plot(T_ode45, theta2q2a*180/pi)
-        plot(T_ode45, theta3q2a*180/pi)
-        grid on
-        legend('\theta_1','\theta_2','\theta_3')
-               
+%          % plot states - angles from 3 quaternions conversion
+%         pos_fig_a = [973.0000+1  218.6000+1  518.4000+1  326.4000+1]-5;
+%         figure('Name','states - quat2angles','Position',pos_fig_a,...
+%     'color', 'white')
+%         
+%         plot(T_ode45, theta1q2a*180/pi)
+%         hold on
+%         plot(T_ode45, theta2q2a*180/pi)
+%         plot(T_ode45, theta3q2a*180/pi)
+%         grid on
+%         legend('\theta_1','\theta_2','\theta_3')
+%                
         
        
         % plot states - w
@@ -306,49 +306,49 @@ end
 %         figure
 %         plot(T_ode45,t2_new)
         
-        figure('Name','controller angles','Position',pos_fig_w,...
-    'color', 'white')
-        title('Controller Angles input')
-
-        plot(T_ode45,obj.history.Theta_history(:,1)*180/pi);
-        hold on
-        plot(T_ode45,obj.history.Theta_history(:,2)*180/pi);
-        plot(T_ode45,obj.history.Theta_history(:,3)*180/pi);
-        grid on
-        legend('\theta_1','\theta_2','\theta_3')
-        
-        [X,Y,Z] = quat_eul(X_ode45(:,10:-1:7));
-        figure('Name','angles quat eul','Position',pos_fig_w,...
-    'color', 'white')
-        title('Quat Eul conv')
-
-        plot(T_ode45,X);
-        hold on
-        plot(T_ode45,Y);
-        plot(T_ode45,Z);
-        grid on
-        legend('\phi','\theta','sai')
+%         figure('Name','controller angles','Position',pos_fig_w,...
+%     'color', 'white')
+%         title('Controller Angles input')
+% 
+%         plot(T_ode45,obj.history.Theta_history(:,1)*180/pi);
+%         hold on
+%         plot(T_ode45,obj.history.Theta_history(:,2)*180/pi);
+%         plot(T_ode45,obj.history.Theta_history(:,3)*180/pi);
+%         grid on
+%         legend('\theta_1','\theta_2','\theta_3')
+%         
+%         [X,Y,Z] = quat_eul(X_ode45(:,10:-1:7));
+%         figure('Name','angles quat eul','Position',pos_fig_w,...
+%     'color', 'white')
+%         title('Quat Eul conv')
+% 
+%         plot(T_ode45,X);
+%         hold on
+%         plot(T_ode45,Y);
+%         plot(T_ode45,Z);
+%         grid on
+%         legend('\phi','\theta','sai')
         
 %         
 %         plot diff theta
-        figure('Name','theta diff','Position',pos_fig_w+3,...
-    'color', 'white')
-        
-        plot(T_ode45, diff_t1,'-')
-        title('states - rotational speeds (deg/sec)')
-
-        hold on
-        plot(T_ode45, diff_t2,'-')
-        plot(T_ode45, diff_t3,'-')
-        grid on
-        legend('diff-t1','diff-t2','diff-t3')
-        
-        xlabel('time (s)')
-        ylabel('(deg/s)')
-        
+%         figure('Name','theta diff','Position',pos_fig_w+3,...
+%     'color', 'white')
+%         
+%         plot(T_ode45, diff_t1,'-')
+%         title('states - rotational speeds (deg/sec)')
+% 
+%         hold on
+%         plot(T_ode45, diff_t2,'-')
+%         plot(T_ode45, diff_t3,'-')
+%         grid on
+%         legend('diff-t1','diff-t2','diff-t3')
+%         
+%         xlabel('time (s)')
+%         ylabel('(deg/s)')
+%         
         eul = quat2eul(X_ode45(:,10:-1:7));
         
-        figure('Name','quat2eul','Position',pos_fig_w+3,...
+        figure('Name','Euler angles','Position',pos_fig_w+3,...
     'color', 'white')
         
         plot(T_ode45, eul(:,1)*180/pi,'-')
@@ -358,7 +358,7 @@ end
         plot(T_ode45, eul(:,2)*180/pi,'-')
         plot(T_ode45, eul(:,3)*180/pi,'-')
         grid on
-        legend('\phi','\theta','sai')
+        legend('\phi','\theta','\psi')
         
         xlabel('time (s)')
         ylabel('(deg)')
