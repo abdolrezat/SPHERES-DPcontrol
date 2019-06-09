@@ -94,6 +94,35 @@ for k_s = N_stage-1:-1:1
 end
 %finish up
 fprintf('\nstage calculations complete.\n')
+% %plot J* using:
+M = M_gI.Values;
+M(M_gI.Values > 1) = NaN;
+
+controller.Fx_gI = M_gI.GridVectors;
+XF1 = repmat(controller.Fx_gI{1}', [1 length(controller.Fx_gI{2})]);
+XF2 = repmat(controller.Fx_gI{2}, [length(controller.Fx_gI{1}) 1]);
+figure
+axM = mesh(XF1*180/pi,XF2, M);
+axM.Parent.View= [0 90];
+% title('Optimal Moment from Attitude Controller')
+xlabel('\theta [deg]')
+ylabel('\omega [rad/s]')
+zlabel(strcat('${\mathrm{J}^\mathrm{*}_\mathrm{M}}$'), 'FontSize', 13, 'Interpreter', 'latex')
+
+colormap('gray');
+grid on
+axis('tight')
+
+gridAlpha = 0.5;
+gridLineStyle = ':';
+xticks_v = [-360,-180,0,180,360];
+xticks(xticks_v)
+        xticklabels(num2cell(xticks_v))
+set(gca, 'TickDir','out', 'Box', 'off', 'FontSize', 13)
+
+
+
+
 M_gI = M_gI.GridVectors;
 
 end

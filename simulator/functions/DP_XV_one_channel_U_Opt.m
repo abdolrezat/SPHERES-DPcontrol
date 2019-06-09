@@ -93,8 +93,15 @@ for k_s = N_stage-1:-1:1
 end
 %finish up
 fprintf('\nstage calculations complete.\n')
+% %plot J* using:
+% controller.Fx_gI = F_gI.GridVectors;
+% XF1 = repmat(controller.Fx_gI{1}', [1 length(controller.Fx_gI{2})]);
+% XF2 = repmat(controller.Fx_gI{2}, [length(controller.Fx_gI{1}) 1]);
+% figure
+% mesh(XF1,XF2, F_gI.Values)
 
 F_gI = F_gI.GridVectors; %clear memory
+
 
 end %end of function: DP_XV_one_channel_U_Opt
 
