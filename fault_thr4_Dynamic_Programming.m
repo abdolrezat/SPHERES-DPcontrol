@@ -1,33 +1,33 @@
-function S = fault_thr2_Dynamic_Programming(varargin)
+function S = fault_thr4_Dynamic_Programming(varargin)
 %fault_thr2_Dynamic_Programming 
 % simulations with thr#2 failed
 
 %
 %% generate controller
 % if nargin == 0
-    controller.name = 'controller_DP_attposition_fault_thr2'; %name of controller, will be saved under /controller directory
+    controller.name = 'controller_DP_attposition_fault_thr4'; %name of controller, will be saved under /controller directory
     Thruster_max_F = 0.12/5; % (N)
     Thruster_dist = (9.65E-2); % (meters)
     Thruster_max_M = Thruster_max_F*Thruster_dist;
     controller.lim_Fx = [-2*Thruster_max_F 2*Thruster_max_F];
     controller.lim_My = [-2*Thruster_max_M 2*Thruster_max_M];
-    controller.lim_Fy = [-2*Thruster_max_F Thruster_max_F];
-    controller.lim_Mz = [-2*Thruster_max_M Thruster_max_M];
-    controller.lim_Fz = [-2*Thruster_max_F 2*Thruster_max_F];
-    controller.lim_Mx = [-2*Thruster_max_M 2*Thruster_max_M];
+    controller.lim_Fy = [-2*Thruster_max_F 2*Thruster_max_F];
+    controller.lim_Mz = [-2*Thruster_max_M 2*Thruster_max_M];
+    controller.lim_Fz = [-2*Thruster_max_F Thruster_max_F];
+    controller.lim_Mx = [-2*Thruster_max_M Thruster_max_M];
     controller.n_mesh_Fx = 41;
     controller.n_mesh_My = 41;
-    controller.n_mesh_Fy = 31;
-    controller.n_mesh_Mz = 31;
-    controller.n_mesh_Fz = 41;
-    controller.n_mesh_Mx = 41;
+    controller.n_mesh_Fy = 41;
+    controller.n_mesh_Mz = 41;
+    controller.n_mesh_Fz = 31;
+    controller.n_mesh_Mx = 31;
     
     controller.Qx1 = 1;
     controller.Qv1Qx1_ratio = 200; 
-    controller.Qx2 = 0.01;
-    controller.Qv2Qx2_ratio = 500; 
-    controller.Qx3 = 1;
-    controller.Qv3Qx3_ratio = 200; 
+    controller.Qx2 = 1;
+    controller.Qv2Qx2_ratio = 200; 
+    controller.Qx3 = 0.01;
+    controller.Qv3Qx3_ratio = 500; 
     
     controller.Qt = 1;
     controller.QwQt_ratio = 5; 
@@ -40,7 +40,7 @@ function S = fault_thr2_Dynamic_Programming(varargin)
 %     generate_Dynamic_Programming_controller_2()
     %% put controller in test
     simulator_opts.current_controller = controller.name;
-simulator_opts.faulty_thruster_index = [2]; %index of faulty thruster(s) #0-#11
+simulator_opts.faulty_thruster_index = [4]; %index of faulty thruster(s) #0-#11
   simulator_opts.thruster_allocation_mode = 'quadratic programming pulse modulation-adaptive'; %'spheres pulse modulation' {'active set discrete', 'PWPF', 'Schmitt', 'none'}
 
 simulator_opts.Thruster_max_F = 0.12; % (N)
@@ -57,7 +57,7 @@ for r = -10
 %     S2 =simulation_fault_DP_noallocation_2(simulator_opts);
     close all
     S.plot_optimal_path
-    S.plot_yz_plane
+    S.plot_optimal_path_export_article
 %     plot12(S2,S2)
     pause(.01)
     end
@@ -71,8 +71,8 @@ function generate_Dynamic_Programming_controller(controller)%GENERATE_CONTROLLER
 %   in the corresponding folder
 %% generate controller
     %controller variables
-    controller.Tf = 300; % Tfinal for Force controller run
-    controller.Tm = 100; % Tfinal for Moment controller run
+    controller.Tf = 301; % Tfinal for Force controller run
+    controller.Tm = 101; % Tfinal for Moment controller run
     %time variables
     controller.h = 1; % time step for controllers
     %Optimal Control constants

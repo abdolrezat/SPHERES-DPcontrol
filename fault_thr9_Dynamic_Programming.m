@@ -1,17 +1,17 @@
-function S = fault_thr2_Dynamic_Programming(varargin)
+function S = fault_thr9_Dynamic_Programming(varargin)
 %fault_thr2_Dynamic_Programming 
 % simulations with thr#2 failed
 
 %
 %% generate controller
 % if nargin == 0
-    controller.name = 'controller_DP_attposition_fault_thr2'; %name of controller, will be saved under /controller directory
+    controller.name = 'controller_DP_attposition_fault_thr9'; %name of controller, will be saved under /controller directory
     Thruster_max_F = 0.12/5; % (N)
     Thruster_dist = (9.65E-2); % (meters)
     Thruster_max_M = Thruster_max_F*Thruster_dist;
     controller.lim_Fx = [-2*Thruster_max_F 2*Thruster_max_F];
     controller.lim_My = [-2*Thruster_max_M 2*Thruster_max_M];
-    controller.lim_Fy = [-2*Thruster_max_F Thruster_max_F];
+    controller.lim_Fy = [-Thruster_max_F 2*Thruster_max_F];
     controller.lim_Mz = [-2*Thruster_max_M Thruster_max_M];
     controller.lim_Fz = [-2*Thruster_max_F 2*Thruster_max_F];
     controller.lim_Mx = [-2*Thruster_max_M 2*Thruster_max_M];
@@ -40,15 +40,19 @@ function S = fault_thr2_Dynamic_Programming(varargin)
 %     generate_Dynamic_Programming_controller_2()
     %% put controller in test
     simulator_opts.current_controller = controller.name;
-simulator_opts.faulty_thruster_index = [2]; %index of faulty thruster(s) #0-#11
+simulator_opts.faulty_thruster_index = [9]; %index of faulty thruster(s) #0-#11
   simulator_opts.thruster_allocation_mode = 'quadratic programming pulse modulation-adaptive'; %'spheres pulse modulation' {'active set discrete', 'PWPF', 'Schmitt', 'none'}
 
 simulator_opts.Thruster_max_F = 0.12; % (N)
 simulator_opts.h = 0.01; %simulation fixed time steps
-  simulator_opts.T_final = 200; %simulation Tfinal
-for r = -10
+  simulator_opts.T_final = 250; %simulation Tfinal
+for r = -2
     dr0 = [r r r]; %initial relative position offset
     dv0 = [0 0 0]; %initial relative velocity offset
+    if(nargin == 2)
+        dr0 = varargin{1};
+        dv0 = varargin{2};
+    end
     q0 = flip(angle2quat(deg2rad(0),deg2rad(0),deg2rad(0))); %initial angles offset (yaw,pitch,roll)
     w0 = [0 0 0]; %initial rotational speed offset
     simulator_opts.defaultX0 = [dr0 dv0 q0 w0]';
@@ -56,8 +60,11 @@ for r = -10
     S = simulation_fault_DP_noallocation(simulator_opts);
 %     S2 =simulation_fault_DP_noallocation_2(simulator_opts);
     close all
+        if(nargin ~= 2)
+
     S.plot_optimal_path
-    S.plot_yz_plane
+    S.plot_optimal_path_export_article
+        end
 %     plot12(S2,S2)
     pause(.01)
     end
@@ -71,8 +78,8 @@ function generate_Dynamic_Programming_controller(controller)%GENERATE_CONTROLLER
 %   in the corresponding folder
 %% generate controller
     %controller variables
-    controller.Tf = 300; % Tfinal for Force controller run
-    controller.Tm = 100; % Tfinal for Moment controller run
+    controller.Tf = 301; % Tfinal for Force controller run
+    controller.Tm = 101; % Tfinal for Moment controller run
     %time variables
     controller.h = 1; % time step for controllers
     %Optimal Control constants

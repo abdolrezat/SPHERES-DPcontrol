@@ -1,33 +1,33 @@
-function S = fault_thr2_Dynamic_Programming(varargin)
+function S = fault_thr10_Dynamic_Programming(varargin)
 %fault_thr2_Dynamic_Programming 
 % simulations with thr#2 failed
 
 %
 %% generate controller
 % if nargin == 0
-    controller.name = 'controller_DP_attposition_fault_thr2'; %name of controller, will be saved under /controller directory
+    controller.name = 'controller_DP_attposition_fault_thr10'; %name of controller, will be saved under /controller directory
     Thruster_max_F = 0.12/5; % (N)
     Thruster_dist = (9.65E-2); % (meters)
     Thruster_max_M = Thruster_max_F*Thruster_dist;
     controller.lim_Fx = [-2*Thruster_max_F 2*Thruster_max_F];
     controller.lim_My = [-2*Thruster_max_M 2*Thruster_max_M];
-    controller.lim_Fy = [-2*Thruster_max_F Thruster_max_F];
-    controller.lim_Mz = [-2*Thruster_max_M Thruster_max_M];
-    controller.lim_Fz = [-2*Thruster_max_F 2*Thruster_max_F];
-    controller.lim_Mx = [-2*Thruster_max_M 2*Thruster_max_M];
+    controller.lim_Fy = [-2*Thruster_max_F 2*Thruster_max_F];
+    controller.lim_Mz = [-2*Thruster_max_M 2*Thruster_max_M];
+    controller.lim_Fz = [-Thruster_max_F 2*Thruster_max_F];
+    controller.lim_Mx = [-Thruster_max_M 2*Thruster_max_M];
     controller.n_mesh_Fx = 41;
     controller.n_mesh_My = 41;
-    controller.n_mesh_Fy = 31;
-    controller.n_mesh_Mz = 31;
-    controller.n_mesh_Fz = 41;
-    controller.n_mesh_Mx = 41;
+    controller.n_mesh_Fy = 41;
+    controller.n_mesh_Mz = 41;
+    controller.n_mesh_Fz = 31;
+    controller.n_mesh_Mx = 31;
     
     controller.Qx1 = 1;
     controller.Qv1Qx1_ratio = 200; 
-    controller.Qx2 = 0.01;
-    controller.Qv2Qx2_ratio = 500; 
-    controller.Qx3 = 1;
-    controller.Qv3Qx3_ratio = 200; 
+    controller.Qx2 = 1;
+    controller.Qv2Qx2_ratio = 200; 
+    controller.Qx3 = 0.01;
+    controller.Qv3Qx3_ratio = 500; 
     
     controller.Qt = 1;
     controller.QwQt_ratio = 5; 
@@ -40,13 +40,13 @@ function S = fault_thr2_Dynamic_Programming(varargin)
 %     generate_Dynamic_Programming_controller_2()
     %% put controller in test
     simulator_opts.current_controller = controller.name;
-simulator_opts.faulty_thruster_index = [2]; %index of faulty thruster(s) #0-#11
+simulator_opts.faulty_thruster_index = [10]; %index of faulty thruster(s) #0-#11
   simulator_opts.thruster_allocation_mode = 'quadratic programming pulse modulation-adaptive'; %'spheres pulse modulation' {'active set discrete', 'PWPF', 'Schmitt', 'none'}
 
 simulator_opts.Thruster_max_F = 0.12; % (N)
 simulator_opts.h = 0.01; %simulation fixed time steps
   simulator_opts.T_final = 200; %simulation Tfinal
-for r = -10
+for r = -2
     dr0 = [r r r]; %initial relative position offset
     dv0 = [0 0 0]; %initial relative velocity offset
     q0 = flip(angle2quat(deg2rad(0),deg2rad(0),deg2rad(0))); %initial angles offset (yaw,pitch,roll)

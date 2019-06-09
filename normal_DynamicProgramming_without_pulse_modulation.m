@@ -26,17 +26,17 @@ function S = normal_DynamicProgramming_without_pulse_modulation(varargin)
     controller.Qx3 = 1;
     controller.Qv3Qx3_ratio = 200; 
     
-    controller.Qt = 80;
+    controller.Qt = 10;
     controller.QwQt_ratio = 5;
 % end
 %     
-    if(1)
+    if(0)
         generate_Dynamic_Programming_controller(controller)
         test_surface(controller.name)
     end
     simulator_opts.current_controller = controller.name;
 simulator_opts.faulty_thruster_index = []; %index of faulty thruster(s) #0-#11
-  simulator_opts.thruster_allocation_mode = 'active set discrete';
+  simulator_opts.thruster_allocation_mode = 'quadratic programming - generic';
 
 simulator_opts.Thruster_max_F = 0.12; % (N)
 simulator_opts.h = 0.01; %simulation fixed time steps
@@ -60,8 +60,8 @@ function generate_Dynamic_Programming_controller(controller)%GENERATE_CONTROLLER
 %   in the corresponding folder
 %% generate controller
     %controller variables
-    controller.Tf = 200; % Tfinal for Force controller run
-    controller.Tm = 50; % Tfinal for Moment controller run
+    controller.Tf = 150; % Tfinal for Force controller run
+    controller.Tm = 80; % Tfinal for Moment controller run
     %time variables
     controller.h = 0.01; % time step for controllers
     %Optimal Control constants
@@ -75,7 +75,7 @@ function generate_Dynamic_Programming_controller(controller)%GENERATE_CONTROLLER
     % mesh generation , limits
     controller.lim_x = [-20 20]; %in m
     controller.lim_v = [-1.3 1.3]; %in m/s
-    controller.lim_t = deg2rad([-50 50]); %in degrees, converts to rad
+    controller.lim_t = deg2rad([-80 80]); %in degrees, converts to rad
     controller.lim_w = deg2rad([-40 40]); %in rad/s% mesh generation , Force and Moments
 
     % mesh generation , mesh resolutions

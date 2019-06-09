@@ -1,4 +1,4 @@
-function S = normal_DynamicProgramming_with_pulse_modulation(varargin)
+function S = normal_DP_Lyap_compare_with_pulse_modulation_identical_ts_3pos(varargin)
 
 %% generate controller
 % if nargin == 0
@@ -40,7 +40,7 @@ simulator_opts.faulty_thruster_index = []; %index of faulty thruster(s) #0-#11
 
 simulator_opts.Thruster_max_F = 0.12; % (N)
 simulator_opts.h = 0.01; %simulation fixed time steps
-  simulator_opts.T_final = 400; %simulation Tfinal
+  simulator_opts.T_final = 250; %simulation Tfinal
 
     dr0 = [-10 10 10]; %initial relative position offset
     dv0 = [0 0 0]; %initial relative velocity offset
@@ -48,8 +48,64 @@ simulator_opts.h = 0.01; %simulation fixed time steps
     w0 = [0 0 0]; %initial rotational speed offset
     simulator_opts.defaultX0 = [dr0 dv0 q0 w0]';
     S = simulation_normal_DP(simulator_opts);
-    S.plot_optimal_path
-    S.plot_xy_plane
+%     S.plot_optimal_path
+%     S.plot_xy_plane
+s0 = q0(1:3)/(1+q0(4));
+init_states = [dr0, dv0, s0, w0];
+
+
+load_system('SPHERES_lyapnov_model_pulse_modulation_for_plots'); %load up
+set_param('SPHERES_lyapnov_model_pulse_modulation_for_plots', 'StopTime', num2str(S.history.T_ode45(end)))
+set_param('SPHERES_lyapnov_model_pulse_modulation_for_plots/Integrator', 'InitialCondition', strcat('[',num2str(init_states),']'))
+set_param('SPHERES_lyapnov_model_pulse_modulation_for_plots/reference model/reference model - translational/Integrator1', 'InitialCondition',strcat('[',num2str(dr0),']'))
+
+sim('SPHERES_lyapnov_model_pulse_modulation_for_plots');
+
+LQ.thr_hist = thr_hist;
+LQ.states_out = states_out;
+LQ.refmodel_out = refmodel_out;
+LQ.F_M_out = F_M_out;
+
+%% 2
+
+    dr0 = [-10 10 10]*0.5; %initial relative position offset
+    simulator_opts.defaultX0 = [dr0 dv0 q0 w0]';
+    S2 = simulation_normal_DP(simulator_opts);
+    
+init_states = [dr0, dv0, s0, w0];
+% load_system('SPHERES_lyapnov_model_pulse_modulation_for_plots'); %load up
+set_param('SPHERES_lyapnov_model_pulse_modulation_for_plots/Integrator', 'InitialCondition', strcat('[',num2str(init_states),']'))
+set_param('SPHERES_lyapnov_model_pulse_modulation_for_plots/reference model/reference model - translational/Integrator1', 'InitialCondition',strcat('[',num2str(dr0),']'))
+
+sim('SPHERES_lyapnov_model_pulse_modulation_for_plots');
+
+LQ2.thr_hist = thr_hist;
+LQ2.states_out = states_out;
+LQ2.refmodel_out = refmodel_out;
+LQ2.F_M_out = F_M_out;
+
+%% 3
+
+    dr0 = [-10 10 10]*1.5; %initial relative position offset
+    simulator_opts.defaultX0 = [dr0 dv0 q0 w0]';
+    S3 = simulation_normal_DP(simulator_opts);
+    
+init_states = [dr0, dv0, s0, w0];
+% load_system('SPHERES_lyapnov_model_pulse_modulation_for_plots'); %load up
+set_param('SPHERES_lyapnov_model_pulse_modulation_for_plots/Integrator', 'InitialCondition', strcat('[',num2str(init_states),']'))
+set_param('SPHERES_lyapnov_model_pulse_modulation_for_plots/reference model/reference model - translational/Integrator1', 'InitialCondition',strcat('[',num2str(dr0),']'))
+
+sim('SPHERES_lyapnov_model_pulse_modulation_for_plots');
+
+LQ3.thr_hist = thr_hist;
+LQ3.states_out = states_out;
+LQ3.refmodel_out = refmodel_out;
+LQ3.F_M_out = F_M_out;
+
+
+
+plot_compare_DPlyap_3initial_positions(S, LQ, S2,LQ2, S3, LQ3)
+
 end
 
 
@@ -60,8 +116,8 @@ function generate_Dynamic_Programming_controller(controller)%GENERATE_CONTROLLER
 %   in the corresponding folder
 %% generate controller
     %controller variables
-    controller.Tf = 150; % Tfinal for Force controller run
-    controller.Tm = 50; % Tfinal for Moment controller run
+    controller.Tf = 500; % Tfinal for Force controller run
+    controller.Tm = 100; % Tfinal for Moment controller run
     %time variables
     controller.h = 1; % time step for controllers
     %Optimal Control constants
@@ -79,10 +135,10 @@ function generate_Dynamic_Programming_controller(controller)%GENERATE_CONTROLLER
     controller.lim_w = deg2rad([-50 50]); %in rad/s% mesh generation , Force and Moments
 
     % mesh generation , mesh resolutions
-    controller.n_mesh_x = 302;
-    controller.n_mesh_v = 300;
-    controller.n_mesh_t = 302;
-    controller.n_mesh_w = 300;
+    controller.n_mesh_x = 502;
+    controller.n_mesh_v = 500;
+    controller.n_mesh_t = 502;
+    controller.n_mesh_w = 500;
 
 % generate the controller
 generate_DP_ForceMoment_controller(controller)
@@ -106,28 +162,3 @@ end
 
 
 
-function plot12(S1,S2)
-
-f1 = figure('Name','states - position',...
-    'Position',[543.4000   49.0000  518.4000  326.4000],...
-    'color', 'white');
-T1 = S1.history.T_ode45;
-T2 = S2.history.T_ode45;
-% title('states - position (m)')
-plot(T1, S1.history.X_ode45(:,1), '--')
-hold on
-plot(T2, S2.history.X_ode45(:,1))
-legend('x1','x2')
-        title('states - position (m)')
-
-f2 = figure('Name','states - w',...
-    'Position',[956.2000   47.4000  518.4000  326.4000],...
-    'color', 'white');
-plot(T1, S1.history.X_ode45(:,12)*180/pi)
-title('states - rotational speeds (deg/sec)')
-
-hold on
-plot(T2, S2.history.X_ode45(:,12)*180/pi)
-legend('w1','w2')
-
-end
