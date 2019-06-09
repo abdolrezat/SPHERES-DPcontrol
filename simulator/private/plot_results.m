@@ -46,20 +46,21 @@ diff_t3(abs(diff_t3) > 100) = NaN;
 
 if(0) %skip
     
-    x1 = X_ode45(:,1);
-    v1 = X_ode45(:,4);
-    F1 = Force_Moment_log(:,1)*obj.Mass;t3 = theta3*180/pi;
-    w3 = X_ode45(:,13);
-    M3 = Force_Moment_log(:,6);
+    x3 = X_ode45(:,3);
+    v3 = X_ode45(:,6);
+    F3 = Force_Moment_log(:,3)*obj.Mass;
+    t1 = theta1;
+    w1 = X_ode45(:,11);
+    M1 = Force_Moment_log(:,4);
     if(~strcmp(obj.controller_params.type,'PID'))
         [axF,axM] = test_surface(obj.current_controller);
         axes(axF.Parent)
         % colormap('winter')
-        hold on, plot3(x1,v1,F1,'m:', 'LineWidth',2.0);
+        hold on, plot3(x3,v3,F3,'m:', 'LineWidth',2.0);
         
         axes(axM.Parent)
         % colormap('winter')
-        hold on, plot3(t3,w3,M3,'m:', 'LineWidth',2.0);
+        hold on, plot3(t1,w1,M1,'m:', 'LineWidth',2.0);
     end
 end
 %% plot Thruster Firings
@@ -306,16 +307,16 @@ end
 %         figure
 %         plot(T_ode45,t2_new)
         
-%         figure('Name','controller angles','Position',pos_fig_w,...
-%     'color', 'white')
-%         title('Controller Angles input')
-% 
-%         plot(T_ode45,obj.history.Theta_history(:,1)*180/pi);
-%         hold on
-%         plot(T_ode45,obj.history.Theta_history(:,2)*180/pi);
-%         plot(T_ode45,obj.history.Theta_history(:,3)*180/pi);
-%         grid on
-%         legend('\theta_1','\theta_2','\theta_3')
+        figure('Name','controller angles','Position',pos_fig_w,...
+    'color', 'white')
+        title('Controller Angles input')
+
+        plot(T_ode45,obj.history.Theta_history(:,1)*180/pi);
+        hold on
+        plot(T_ode45,obj.history.Theta_history(:,2)*180/pi);
+        plot(T_ode45,obj.history.Theta_history(:,3)*180/pi);
+        grid on
+        legend('\theta_1','\theta_2','\theta_3')
 %         
 %         [X,Y,Z] = quat_eul(X_ode45(:,10:-1:7));
 %         figure('Name','angles quat eul','Position',pos_fig_w,...
@@ -331,20 +332,20 @@ end
         
 %         
 %         plot diff theta
-%         figure('Name','theta diff','Position',pos_fig_w+3,...
-%     'color', 'white')
-%         
-%         plot(T_ode45, diff_t1,'-')
-%         title('states - rotational speeds (deg/sec)')
-% 
-%         hold on
-%         plot(T_ode45, diff_t2,'-')
-%         plot(T_ode45, diff_t3,'-')
-%         grid on
-%         legend('diff-t1','diff-t2','diff-t3')
-%         
-%         xlabel('time (s)')
-%         ylabel('(deg/s)')
+        figure('Name','theta diff','Position',pos_fig_w+3,...
+    'color', 'white')
+        
+        plot(T_ode45, diff_t1,'-')
+        title('states - rotational speeds (deg/sec)')
+
+        hold on
+        plot(T_ode45, diff_t2,'-')
+        plot(T_ode45, diff_t3,'-')
+        grid on
+        legend('diff-t1','diff-t2','diff-t3')
+        
+        xlabel('time (s)')
+        ylabel('(deg/s)')
 %         
         eul = quat2eul(X_ode45(:,10:-1:7));
         
