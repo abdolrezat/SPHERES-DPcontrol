@@ -7,7 +7,7 @@ function generate_DP_ForceMoment_controller(varargin)
 path_ = strsplit(mfilename('fullpath'),'\\');
 path_ = strjoin(path_(1:end-1),'\');
 
-addpath(path,strcat(path_,'\functions'))
+% addpath(path,strcat(path_,'\functions'))
 
 if(nargin > 0)
     controller = varargin{1};
