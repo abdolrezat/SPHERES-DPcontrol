@@ -69,7 +69,7 @@ classdef Simulator_CW < handle
             else
                 try
                     this.controller_params = controller; %uses options such as Ki
-                catch 
+                catch
                     this.controller_params.type = 'DP';
                 end
                 %set (DP) controller name
@@ -85,13 +85,13 @@ classdef Simulator_CW < handle
                 this.controller_InterpmodeM = simopts.controller_InterpmodeM;
                 this.thruster_allocation_mode = simopts.thruster_allocation_mode;
                 this.faulty_thruster_index = simopts.faulty_thruster_index;
-%                 this.quad_prog.Weighting_Matrix_1_default = simopts.Quad_Prog.Weighting_Matrix_1;
-%                 this.quad_prog.Weighting_Matrix_2_default = simopts.Quad_Prog.Weighting_Matrix_2;
-%                 this.quad_prog.Weighting_Matrix_3_default = simopts.Quad_Prog.Weighting_Matrix_3;
+                %                 this.quad_prog.Weighting_Matrix_1_default = simopts.Quad_Prog.Weighting_Matrix_1;
+                %                 this.quad_prog.Weighting_Matrix_2_default = simopts.Quad_Prog.Weighting_Matrix_2;
+                %                 this.quad_prog.Weighting_Matrix_3_default = simopts.Quad_Prog.Weighting_Matrix_3;
                 if strcmp(this.mode,'normal') == 1
-                this.quad_prog.Weighting_Matrix_F_default = [1, 0; 0, 1];
+                    this.quad_prog.Weighting_Matrix_F_default = [1, 0; 0, 1];
                 else
-                this.quad_prog.Weighting_Matrix_F_default = [1, 0; 0, 0.93];
+                    this.quad_prog.Weighting_Matrix_F_default = [1, 0; 0, 0.93];
                 end
                 this.quad_prog.Weighting_Matrix_1 = this.quad_prog.Weighting_Matrix_F_default;
                 this.quad_prog.Weighting_Matrix_2 = this.quad_prog.Weighting_Matrix_F_default;
@@ -102,17 +102,19 @@ classdef Simulator_CW < handle
                 
                 this.quad_prog.angle_up_bound = 3000;
                 this.quad_prog.angle_low_bound = 2000;
-                this.quad_prog.threshold_positive = 0.6;
-                this.quad_prog.threshold_negative = 0;
                 
-                % assign quadratic programming parameter interpolant based
-                % on which thruster(s) are failed
-                params_distances = [2 5 6 10];
-                params_values = [1.19 1.1 1.07 1.07]; % this determines Weighting_matrix(4)
-                params_distances_mirror = -params_distances(end:-1:1);
-                params_values_mirror = params_values(end:-1:1); % this determines Weighting_matrix(4)
+                this.quad_prog.W_interp_mode = 'linear';
+              
                 %channel - x
                 if ismember(this.faulty_thruster_index, [0 1 6 7])
+                    
+                    this.quad_prog.threshold_positive = 1;
+                    this.quad_prog.threshold_negative = 0;
+                    params_distances = [2 5 6 10];
+                    params_values = [1.19 1.1 1.07 1.07]; % this determines Weighting_matrix(4)
+                    params_distances_mirror = -params_distances(end:-1:1);
+                    params_values_mirror = params_values(end:-1:1); % this determines Weighting_matrix(4)
+                    
                     if ismember(this.faulty_thruster_index, [0 1])
                         params_distances_x = params_distances;
                         params_values_x = params_values;
@@ -122,11 +124,20 @@ classdef Simulator_CW < handle
                         params_values_x = params_values_mirror;
                         this.quad_prog.bool_channel_fault.x01 = false;
                     end
-                    this.quad_prog.Fw1 = griddedInterpolant(params_distances_x , params_values_x, 'nearest','nearest');
+                    this.quad_prog.Fw1 = griddedInterpolant(params_distances_x , params_values_x, this.quad_prog.W_interp_mode,'nearest');
                 end
                 
                 %channel - y
                 if ismember(this.faulty_thruster_index, [2 3 8 9])
+                    this.quad_prog.threshold_positive = 0.6;
+                    this.quad_prog.threshold_negative = 0;
+                    % assign quadratic programming parameter interpolant based
+                    % on which thruster(s) are failed
+                    params_distances = [2 5 6 10];
+                    params_values = [1.19 1.1 1.07 1.07]; % this determines Weighting_matrix(4)
+                    params_distances_mirror = -params_distances(end:-1:1);
+                    params_values_mirror = params_values(end:-1:1); % this determines Weighting_matrix(4)
+                    
                     if ismember(this.faulty_thruster_index, [2 3])
                         params_distances_y = params_distances;
                         params_values_y = params_values;
@@ -136,10 +147,19 @@ classdef Simulator_CW < handle
                         params_values_y = params_values_mirror;
                         this.quad_prog.bool_channel_fault.y23 = false;
                     end
-                    this.quad_prog.Fw2 = griddedInterpolant(params_distances_y , params_values_y, 'nearest','nearest');
+                    this.quad_prog.Fw2 = griddedInterpolant(params_distances_y , params_values_y, this.quad_prog.W_interp_mode,'nearest');
                 end
                 %channel - z
                 if ismember(this.faulty_thruster_index, [4 5 10 11])
+                    this.quad_prog.threshold_positive = 0.6;
+                    this.quad_prog.threshold_negative = 0;
+                    % assign quadratic programming parameter interpolant based
+                    % on which thruster(s) are failed
+                    params_distances = [2 5 6 10];
+                    params_values = [1.19 1.1 1.07 1.07]; % this determines Weighting_matrix(4)
+                    params_distances_mirror = -params_distances(end:-1:1);
+                    params_values_mirror = params_values(end:-1:1); % this determines Weighting_matrix(4)
+                    
                     if ismember(this.faulty_thruster_index, [4 5])
                         params_distances_z = params_distances;
                         params_values_z = params_values;
@@ -149,13 +169,13 @@ classdef Simulator_CW < handle
                         params_values_z = params_values_mirror;
                         this.quad_prog.bool_channel_fault.z45 = false;
                     end
-                    this.quad_prog.Fw3 = griddedInterpolant(params_distances_z , params_values_z, 'nearest','nearest');
+                    this.quad_prog.Fw3 = griddedInterpolant(params_distances_z , params_values_z, this.quad_prog.W_interp_mode,'nearest');
                 end
-                 
                 
-%                 % used to be
-%                 this.active_set.Weighting_Matrix = simopts.active_set.Weighting_Matrix;
-%                 this.active_set.Weighting_Matrix_default = simopts.active_set.Weighting_Matrix;
+                
+                %                 % used to be
+                %                 this.active_set.Weighting_Matrix = simopts.active_set.Weighting_Matrix;
+                %                 this.active_set.Weighting_Matrix_default = simopts.active_set.Weighting_Matrix;
             end
             
             if(strcmp(this.mode,'normal') == 1)
@@ -163,19 +183,19 @@ classdef Simulator_CW < handle
             end
             
             this.Mass = 4.16;  %change to constant parameter
-%             inertia(1,1) =  0.02836 + 0.00016;
-%             inertia(2,1) =  0.026817 + 0.00150;
-%             inertia(3,1) =  0.023 + 0.00150;
-%             inertia(4,1) = -0.0000837;
-%             inertia(5,1) =  0.000014;
-%             inertia(6,1) = -0.00029;
+            %             inertia(1,1) =  0.02836 + 0.00016;
+            %             inertia(2,1) =  0.026817 + 0.00150;
+            %             inertia(3,1) =  0.023 + 0.00150;
+            %             inertia(4,1) = -0.0000837;
+            %             inertia(5,1) =  0.000014;
+            %             inertia(6,1) = -0.00029;
             inertia(1,1) =  2.30E-2;  %kg m^2
             inertia(2,1) =  2.42E-2;
             inertia(3,1) =  2.14E-2;
             inertia(4,1) =  9.90E-05;
             inertia(5,1) = -2.95E-04;
             inertia(6,1) = -2.54E-05;
-this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
+            this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 inertia(4,1)  inertia(2,1)  inertia(6,1);...
                 inertia(5,1)  inertia(6,1)  inertia(3,1)];
             
@@ -193,63 +213,62 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             %Thruster Forces
             this.Thruster_max_F = simopts.Thruster_max_F; % (N)
             this.T_dist = simopts.Thruster_dist; % (meters)
-            this.thruster_min_ontime = 0.005;
-
+            
             try
                 simopts.PWPF1; %if doesn't exist
             catch
                 try
-                simopts.PWPF1 = simopts.PWPF;
-                simopts.PWPF2 = simopts.PWPF;
-                simopts.PWPF3 = simopts.PWPF;
-                simopts.PWPF4 = simopts.PWPF;
-                simopts.PWPF5 = simopts.PWPF;
-                simopts.PWPF6 = simopts.PWPF;
-                simopts.schmitt1 = simopts.schmitt;
-                simopts.schmitt2 = simopts.schmitt;
-                simopts.schmitt3 = simopts.schmitt;
-                simopts.schmitt4 = simopts.schmitt;
-                simopts.schmitt5 = simopts.schmitt;
-                simopts.schmitt6 = simopts.schmitt;
+                    simopts.PWPF1 = simopts.PWPF;
+                    simopts.PWPF2 = simopts.PWPF;
+                    simopts.PWPF3 = simopts.PWPF;
+                    simopts.PWPF4 = simopts.PWPF;
+                    simopts.PWPF5 = simopts.PWPF;
+                    simopts.PWPF6 = simopts.PWPF;
+                    simopts.schmitt1 = simopts.schmitt;
+                    simopts.schmitt2 = simopts.schmitt;
+                    simopts.schmitt3 = simopts.schmitt;
+                    simopts.schmitt4 = simopts.schmitt;
+                    simopts.schmitt5 = simopts.schmitt;
+                    simopts.schmitt6 = simopts.schmitt;
                 catch
-                   % 
+                    %
                 end
             end
             
             try
-            %6x schmitt trigger objects
-            this.schmitt_trigger1 = Schmitt_trigger_c(...
-                simopts.schmitt1.Uout,simopts.schmitt1.Uon,simopts.schmitt1.Uoff);
-            this.schmitt_trigger2 = Schmitt_trigger_c(...
-                simopts.schmitt2.Uout,simopts.schmitt2.Uon,simopts.schmitt2.Uoff);
-            this.schmitt_trigger3 = Schmitt_trigger_c(...
-                simopts.schmitt3.Uout,simopts.schmitt3.Uon,simopts.schmitt3.Uoff);
-            this.schmitt_trigger4 = Schmitt_trigger_c(...
-                simopts.schmitt4.Uout,simopts.schmitt4.Uon,simopts.schmitt4.Uoff);
-            this.schmitt_trigger5 = Schmitt_trigger_c(...
-                simopts.schmitt5.Uout,simopts.schmitt5.Uon,simopts.schmitt5.Uoff);
-            this.schmitt_trigger6 = Schmitt_trigger_c(...
-                simopts.schmitt6.Uout,simopts.schmitt6.Uon,simopts.schmitt6.Uoff);
-           
-            %6x PWPF objects
-            this.PWPF1 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF1.Km, simopts.PWPF1.Tm, simopts.PWPF1.h, ...
-                simopts.schmitt1.Uout, simopts.schmitt1.Uon, simopts.schmitt1.Uoff, simopts.PWPF1.H_feed);
-            this.PWPF2 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF2.Km, simopts.PWPF2.Tm, simopts.PWPF2.h, ...
-                simopts.schmitt2.Uout, simopts.schmitt2.Uon, simopts.schmitt2.Uoff, simopts.PWPF2.H_feed);
-            this.PWPF3 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF3.Km, simopts.PWPF3.Tm, simopts.PWPF3.h, ...
-                simopts.schmitt3.Uout, simopts.schmitt3.Uon, simopts.schmitt3.Uoff, simopts.PWPF3.H_feed);
-            this.PWPF4 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF4.Km, simopts.PWPF4.Tm, simopts.PWPF4.h, ...
-                simopts.schmitt4.Uout, simopts.schmitt4.Uon, simopts.schmitt4.Uoff, simopts.PWPF4.H_feed);
-            this.PWPF5 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF5.Km, simopts.PWPF5.Tm, simopts.PWPF5.h, ...
-                simopts.schmitt5.Uout, simopts.schmitt5.Uon, simopts.schmitt5.Uoff, simopts.PWPF5.H_feed);
-            this.PWPF6 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
-                simopts.PWPF6.Km, simopts.PWPF6.Tm, simopts.PWPF6.h, ...
-                simopts.schmitt6.Uout, simopts.schmitt6.Uon, simopts.schmitt6.Uoff, simopts.PWPF6.H_feed);
+                %6x schmitt trigger objects
+                this.schmitt_trigger1 = Schmitt_trigger_c(...
+                    simopts.schmitt1.Uout,simopts.schmitt1.Uon,simopts.schmitt1.Uoff);
+                this.schmitt_trigger2 = Schmitt_trigger_c(...
+                    simopts.schmitt2.Uout,simopts.schmitt2.Uon,simopts.schmitt2.Uoff);
+                this.schmitt_trigger3 = Schmitt_trigger_c(...
+                    simopts.schmitt3.Uout,simopts.schmitt3.Uon,simopts.schmitt3.Uoff);
+                this.schmitt_trigger4 = Schmitt_trigger_c(...
+                    simopts.schmitt4.Uout,simopts.schmitt4.Uon,simopts.schmitt4.Uoff);
+                this.schmitt_trigger5 = Schmitt_trigger_c(...
+                    simopts.schmitt5.Uout,simopts.schmitt5.Uon,simopts.schmitt5.Uoff);
+                this.schmitt_trigger6 = Schmitt_trigger_c(...
+                    simopts.schmitt6.Uout,simopts.schmitt6.Uon,simopts.schmitt6.Uoff);
+                
+                %6x PWPF objects
+                this.PWPF1 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                    simopts.PWPF1.Km, simopts.PWPF1.Tm, simopts.PWPF1.h, ...
+                    simopts.schmitt1.Uout, simopts.schmitt1.Uon, simopts.schmitt1.Uoff, simopts.PWPF1.H_feed);
+                this.PWPF2 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                    simopts.PWPF2.Km, simopts.PWPF2.Tm, simopts.PWPF2.h, ...
+                    simopts.schmitt2.Uout, simopts.schmitt2.Uon, simopts.schmitt2.Uoff, simopts.PWPF2.H_feed);
+                this.PWPF3 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                    simopts.PWPF3.Km, simopts.PWPF3.Tm, simopts.PWPF3.h, ...
+                    simopts.schmitt3.Uout, simopts.schmitt3.Uon, simopts.schmitt3.Uoff, simopts.PWPF3.H_feed);
+                this.PWPF4 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                    simopts.PWPF4.Km, simopts.PWPF4.Tm, simopts.PWPF4.h, ...
+                    simopts.schmitt4.Uout, simopts.schmitt4.Uon, simopts.schmitt4.Uoff, simopts.PWPF4.H_feed);
+                this.PWPF5 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                    simopts.PWPF5.Km, simopts.PWPF5.Tm, simopts.PWPF5.h, ...
+                    simopts.schmitt5.Uout, simopts.schmitt5.Uon, simopts.schmitt5.Uoff, simopts.PWPF5.H_feed);
+                this.PWPF6 = PWPF_c(...  Km,Tm,h,Uout,Uon,Uoff)
+                    simopts.PWPF6.Km, simopts.PWPF6.Tm, simopts.PWPF6.h, ...
+                    simopts.schmitt6.Uout, simopts.schmitt6.Uon, simopts.schmitt6.Uoff, simopts.PWPF6.H_feed);
             catch
                 %
             end
@@ -293,27 +312,27 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 this.thrust_combs.f2389 = all_feasible_thruster_u_QP(id_fault_channel_2,v_).*this.Thruster_max_F/5;
                 this.thrust_combs.f451011 = all_feasible_thruster_u_QP(id_fault_channel_3,v_).*this.Thruster_max_F/5;
             else
-            [this.thrust_combs.f0_comb,this.thrust_combs.f1_comb,...
-                this.thrust_combs.f6_comb,this.thrust_combs.f7_comb] = ...
-                all_feasible_thruster_u(id_fault_channel_1);
-            [this.thrust_combs.f2_comb,this.thrust_combs.f3_comb,...
-                this.thrust_combs.f8_comb,this.thrust_combs.f9_comb] = ...
-                all_feasible_thruster_u(id_fault_channel_2);
-            [this.thrust_combs.f4_comb,this.thrust_combs.f5_comb,...
-                this.thrust_combs.f10_comb,this.thrust_combs.f11_comb] = ...
-                all_feasible_thruster_u(id_fault_channel_3);
+                [this.thrust_combs.f0_comb,this.thrust_combs.f1_comb,...
+                    this.thrust_combs.f6_comb,this.thrust_combs.f7_comb] = ...
+                    all_feasible_thruster_u(id_fault_channel_1);
+                [this.thrust_combs.f2_comb,this.thrust_combs.f3_comb,...
+                    this.thrust_combs.f8_comb,this.thrust_combs.f9_comb] = ...
+                    all_feasible_thruster_u(id_fault_channel_2);
+                [this.thrust_combs.f4_comb,this.thrust_combs.f5_comb,...
+                    this.thrust_combs.f10_comb,this.thrust_combs.f11_comb] = ...
+                    all_feasible_thruster_u(id_fault_channel_3);
             end
-%             % see the search space (F,M combinations)
-%             Fs = sum(this.thrust_combs.f0167 .* [1;1;-1;-1],1);
-%             Ms = sum(this.thrust_combs.f0167 .* [1;-1;-1;1],1);
-%             Fs2 = sum(this.thrust_combs.f2389 .* [1;1;-1;-1],1);
-%             Ms2 = sum(this.thrust_combs.f2389 .* [1;-1;-1;1],1);
-%             plot(Fs,Ms,'r.'),hold on
-%             plot(Fs2,Ms2,'bx')
+            %             % see the search space (F,M combinations)
+            %             Fs = sum(this.thrust_combs.f0167 .* [1;1;-1;-1],1);
+            %             Ms = sum(this.thrust_combs.f0167 .* [1;-1;-1;1],1);
+            %             Fs2 = sum(this.thrust_combs.f2389 .* [1;1;-1;-1],1);
+            %             Ms2 = sum(this.thrust_combs.f2389 .* [1;-1;-1;1],1);
+            %             plot(Fs,Ms,'r.'),hold on
+            %             plot(Fs2,Ms2,'bx')
             params.Rorbit = 6378+400;
             params.mu = 398600;
             params.n = sqrt(params.mu/params.Rorbit^3); % angular velocity of the LRF
-
+            
             this.WL = params.n;  %ISS orbit angular speed (RSW frame), verified
             
         end
@@ -327,24 +346,24 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             B = [F_Body_req;M_req/obj.T_dist];
             f = zeros(12,1);
             %Control allocation to Thruster Pairs
-%             A = [1,1,0,0,0,0;...
-%                 0,0,1,1,0,0;...
-%                 0,0,0,0,1,1;...
-%                 0,0,0,0,1,-1;...
-%                 1,-1,0,0,0,0;...
-%                 0,0,1,-1,0,0];
+            %             A = [1,1,0,0,0,0;...
+            %                 0,0,1,1,0,0;...
+            %                 0,0,0,0,1,1;...
+            %                 0,0,0,0,1,-1;...
+            %                 1,-1,0,0,0,0;...
+            %                 0,0,1,-1,0,0];
             invA = [0.5,  0,  0,  0,  0.5,  0; ...
-                    0.5,  0,  0,  0,  -0.5,  0; ...
-                    0,  0.5,  0,  0,  0,  0.5; ...
-                    0,  0.5,  0,  0,  0,  -0.5; ...
-                    0,  0,  0.5,  0.5,  0,  0; ...
-                    0,  0,  0.5,  -0.5,  0,  0]; % A*f = [F;M/Tdist], invA = inv(A)
+                0.5,  0,  0,  0,  -0.5,  0; ...
+                0,  0.5,  0,  0,  0,  0.5; ...
+                0,  0.5,  0,  0,  0,  -0.5; ...
+                0,  0,  0.5,  0.5,  0,  0; ...
+                0,  0,  0.5,  -0.5,  0,  0]; % A*f = [F;M/Tdist], invA = inv(A)
             f_pairs_req = invA*B;
             
             switch( lower(obj.thruster_allocation_mode) )
                 case 'pseudoinverse pulse modulation'
-%                     if(sim_time > 15.995) keyboard, end
-                   status = mod(sim_time,1); 
+                    %                     if(sim_time > 15.995) keyboard, end
+                    status = mod(sim_time,1);
                     if (status < 0.199)
                         if status < 1e-7 % == 0
                             % program up to 200ms of thruster firings to be
@@ -357,9 +376,9 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                                     f_(i) = f_pairs_req(i);
                                 end
                             end
-                    %saturate
-                           f_(f_ > obj.Thruster_max_F/5) = obj.Thruster_max_F/5;
-  
+                            %saturate
+                            f_(f_ > obj.Thruster_max_F/5) = obj.Thruster_max_F/5;
+                            
                             if(strcmp(obj.mode,'fault') == 1) %control in fault mode, one thruster (f#0) off
                                 f_(obj.faulty_thruster_index +1) = 0;
                             end
@@ -368,9 +387,9 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                             obj.thr_program_counter = 0;
                             obj.thr_program = zeros(12,N_);
                             % get thrusters on-time by calculating impulse
-                            t_on = f_/(obj.Thruster_max_F); 
-                             %convert on-time to N thruster firings, to be
-                             %programmed for the next 200ms 
+                            t_on = f_/(obj.Thruster_max_F);
+                            %convert on-time to N thruster firings, to be
+                            %programmed for the next 200ms
                             thr_N_fires = round(t_on/obj.h);
                             for d = 1:12
                                 obj.thr_program(d, 1:thr_N_fires(d)) = 1;
@@ -380,8 +399,8 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                         obj.thr_program_counter = obj.thr_program_counter + 1;
                         f = obj.thr_program(:,obj.thr_program_counter)*obj.Thruster_max_F;
                     else
-                       % SPHERES software spends this time updating its beacons
-                       f = zeros(12,1);
+                        % SPHERES software spends this time updating its beacons
+                        f = zeros(12,1);
                     end
                     
                 case 'quadratic programming pulse modulation'
@@ -455,8 +474,8 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                                 end
                                 
                                 if(obj.quad_prog.bool_angleoverflow.x)% (higher priority) moment control if angle
-                                % overflows
-%                                     obj.quad_prog.Weighting_Matrix_1(1) = 0;
+                                    % overflows
+                                    %                                     obj.quad_prog.Weighting_Matrix_1(1) = 0;
                                     obj.quad_prog.Weighting_Matrix_1(4) = 100; %10 is ok
                                 else
                                     obj.quad_prog.Weighting_Matrix_1 = obj.quad_prog.Weighting_Matrix_1_scheduled;
@@ -474,27 +493,27 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                                     end
                                 end
                                 
-                                 if (obj.quad_prog.bool_channel_fault.y23)
-                                        if(X_stage(2) < -obj.quad_prog.threshold_positive)
-                                            obj.quad_prog.Weighting_Matrix_2_scheduled =  obj.quad_prog.Weighting_Matrix_F_default;
-                                        elseif (X_stage(2) > 0 )
-                                            obj.quad_prog.Weighting_Matrix_2_scheduled(4) =  obj.quad_prog.Fw2(X_stage(2));
-                                        end
-                                    else
-                                        if(X_stage(2) > obj.quad_prog.threshold_positive)
-                                            obj.quad_prog.Weighting_Matrix_2 =  obj.quad_prog.Weighting_Matrix_F_default;
-                                        elseif (X_stage(2) < 0 )
-                                            obj.quad_prog.Weighting_Matrix_2(4) =  obj.quad_prog.Fw2(X_stage(2));
-                                        end
-                                 end
-                                    
+                                if (obj.quad_prog.bool_channel_fault.y23)
+                                    if(X_stage(2) < -obj.quad_prog.threshold_positive)
+                                        obj.quad_prog.Weighting_Matrix_2_scheduled =  obj.quad_prog.Weighting_Matrix_F_default;
+                                    elseif (X_stage(2) > 0 )
+                                        obj.quad_prog.Weighting_Matrix_2_scheduled(4) =  obj.quad_prog.Fw2(X_stage(2));
+                                    end
+                                else
+                                    if(X_stage(2) > obj.quad_prog.threshold_positive)
+                                        obj.quad_prog.Weighting_Matrix_2_scheduled =  obj.quad_prog.Weighting_Matrix_F_default;
+                                    elseif (X_stage(2) < 0 )
+                                        obj.quad_prog.Weighting_Matrix_2_scheduled(4) =  obj.quad_prog.Fw2(X_stage(2));
+                                    end
+                                end
+                                
                                 if(obj.quad_prog.bool_angleoverflow.y)
                                     obj.quad_prog.Weighting_Matrix_2(4) = 100; %10 is ok
                                 else
                                     obj.quad_prog.Weighting_Matrix_2 = obj.quad_prog.Weighting_Matrix_2_scheduled;
                                 end
                             end
-                           
+                            
                             
                             % channel - z (Fz & Mx)
                             theta1 = theta_(1)*180/pi;
@@ -527,7 +546,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                                     obj.quad_prog.Weighting_Matrix_3 = obj.quad_prog.Weighting_Matrix_3_scheduled;
                                 end
                             end
-                           
+                            
                             % thruster firings allocation using the Quadratic Programming method
                             [f0,f1,f6,f7] = QuadProg_allocation(obj, B(1), B(5), ...
                                 obj.thrust_combs.f0167, obj.quad_prog.Weighting_Matrix_1);
@@ -599,8 +618,8 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                         f(obj.faulty_thruster_index +1) = 0;
                     end
                     
-                case 'hybrid_2p-x' 
-                    %channel x uses 2 PWPF modulators, 
+                case 'hybrid_2p-x'
+                    %channel x uses 2 PWPF modulators,
                     %channels y & z are controlled with Quadratic Programming
                     
                     % PWPF Modulators
@@ -629,7 +648,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                         obj.thrust_combs.f4_comb,obj.thrust_combs.f5_comb,...
                         obj.thrust_combs.f10_comb,obj.thrust_combs.f11_comb);
                     f = [f0;f1;f2;f3;f4;f5;f6;f7;f8;f9;f10;f11];
-
+                    
                     if(strcmp(obj.mode,'fault') == 1) %control in fault mode, indicated thrusters become off
                         f(obj.faulty_thruster_index +1) = 0;
                     end
@@ -651,7 +670,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                     end
                     
                 case 'saturate-only'
-                     f_pairs = f_pairs_req; 
+                    f_pairs = f_pairs_req;
                     for i=1:6
                         if(f_pairs(i) < 0)
                             f(i+6) = -f_pairs(i);
@@ -664,7 +683,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                     end
                     %saturate
                     f(f > obj.Thruster_max_F) = obj.Thruster_max_F;
-  
+                    
                     %
                 case 'none'
                     % debug code block
@@ -727,12 +746,12 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 obj.controller_params.integral_M2 = 0;
                 obj.controller_params.integral_M3 = 0;
                 
-               obj.controller_params.prev_error_a1 = 0;
-               obj.controller_params.prev_error_a2 = 0;
-               obj.controller_params.prev_error_a3 = 0;
-               obj.controller_params.prev_error_M1 = 0;
-               obj.controller_params.prev_error_M2 = 0;
-               obj.controller_params.prev_error_M3 = 0;
+                obj.controller_params.prev_error_a1 = 0;
+                obj.controller_params.prev_error_a2 = 0;
+                obj.controller_params.prev_error_a3 = 0;
+                obj.controller_params.prev_error_M1 = 0;
+                obj.controller_params.prev_error_M2 = 0;
+                obj.controller_params.prev_error_M3 = 0;
             end
             %%
             
@@ -742,18 +761,21 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             X_ode45 = zeros(N_total_sim, 13);
             F_Th_Opt = zeros(N_total_sim, 12);
             Force_Moment_log = zeros(N_total_sim, 6);
+            Force_Moment_log_Body = zeros(N_total_sim, 6);
             Force_Moment_log_req = zeros(N_total_sim, 6);
+            W_hist = zeros(N_total_sim, 3);
+
             X_ode45(1,:) = X0;
             Theta_history = zeros(N_total_sim, 3);
             % initial angle and rorational speed feed for controllers
-            Theta_ = 2*asin(X_ode45(1,7:9)); 
-            Theta_dot = X_ode45(1,11:13); 
+            Theta_ = 2*asin(X_ode45(1,7:9));
+            Theta_dot = X_ode45(1,11:13);
             % Calculate the target initial state vector
             %% for linearized equations
             [R0,V0] = get_target_R0V0();
-            %% 
+            %%
             
-%             tic
+            %             tic
             for k_stage=1:N_total_sim-1
                 %determine F_Opt each Thruster
                 X_stage = X_ode45(k_stage,:);
@@ -782,23 +804,27 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 a_Body_req = rotM_ECI2body*rotM_RSW2ECI*  a_req;
                 M_Body_req = U_M_req;
                 % debugging block of code for a certain time
-%                 if(tspan(k_stage) == 60.615) keyboard; end
+                %                 if(tspan(k_stage) == 60.615) keyboard; end
                 %
                 f_thruster = get_thruster_on_off_optimal(obj, M_Body_req, a_Body_req, X_stage, tspan(k_stage),Theta_);
                 % accelerations from thruster forces1
+                [a_x_body, a_y_body, a_z_body, U_M_body] = to_Body_Moments_Forces(obj,f_thruster);
+                
                 [obj.U_M, obj.a_x, obj.a_y, obj.a_z] = to_Moments_Forces(obj,...
-                    f_thruster, rotM_RSW2ECI, rotM_ECI2body);
+                    a_x_body, a_y_body, a_z_body, U_M_body,...
+                    rotM_RSW2ECI, rotM_ECI2body);
                 %
-%                 %% test environment for controller,
-%                 % enable the block below to check controller performance
-%                 % without any thruster limit
-%                 a_x = a_req(1);
-%                 a_y = a_req(2);
-%                 a_z = a_req(3);
-%                 U_M = U_M_req;
-%                 
+                %                 %% test environment for controller,
+                %                 % enable the block below to check controller performance
+                %                 % without any thruster limit
+                %                 a_x = a_req(1);
+                %                 a_y = a_req(2);
+                %                 a_z = a_req(3);
+                %                 U_M = U_M_req;
+                %
                 %log
                 F_Th_Opt(k_stage,:) = f_thruster;
+                Force_Moment_log_Body(k_stage,:) = [a_x_body, a_y_body, a_z_body, U_M_body'];
                 Force_Moment_log(k_stage,:) = [obj.a_x, obj.a_y, obj.a_z, obj.U_M'];
                 Force_Moment_log_req(k_stage,:) = [a_req;U_M_req];
                 % use RK4 instead of ode45 for more speed and no less
@@ -812,11 +838,11 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 X_ode45(k_stage+1,:) = X_temp(end,:);
                 %update rotational speed feedbacks for controllers (thetadots)
                 temp_theta_new = 2*asin(X_ode45(k_stage+1,7:9));
-%                 Theta_dot = (temp_theta_new - Theta_)/obj.h; %rad/s
+                %                 Theta_dot = (temp_theta_new - Theta_)/obj.h; %rad/s
                 Theta_dot = X_ode45(k_stage+1,11:13); %w in rad/s
                 Theta_ = temp_theta_new;
-%% new test code block
-%                 t2_from_trapz_w2 = cumtrapz(T_ode45,X_ode45(:,12));
+                %% new test code block
+                %                 t2_from_trapz_w2 = cumtrapz(T_ode45,X_ode45(:,12));
                 eul = quat2eul(X_ode45(k_stage+1,10:-1:7));
                 if(Theta_(3)*eul(3) < 0)
                     %                     Theta_(3) = eul(3);
@@ -831,49 +857,97 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                     Theta_(1) = -Theta_(1);
                 end
                 
-%                 Theta_ = eul
-%                 if (abs (t2_from_trapz_w2(k_stage)) > pi)
-%                     %Theta_(2) = Theta_(2)/abs(Theta_(2))*(2*pi - Theta_(2));
-%                     Theta_(2) = t2_from_trapz_w2(k_stage);
-%                 end
-%                 Theta_2_history(k_stage) = Theta_(2);
-% %                     Theta_(2) = t2_from_trapz_w2(k_stage);
-%                 if(abs(t2_from_trapz_w2(k_stage)) >= pi)
-%                     Theta_(2) = -Theta_(2);
-%                 end
-%                 if(t2_from_trapz_w2 < 150)
-%                     Theta_(2) = 360 - Theta_(2);
-%                 end
-                %% 
+                %                 Theta_ = eul
+                %                 if (abs (t2_from_trapz_w2(k_stage)) > pi)
+                %                     %Theta_(2) = Theta_(2)/abs(Theta_(2))*(2*pi - Theta_(2));
+                %                     Theta_(2) = t2_from_trapz_w2(k_stage);
+                %                 end
+                %                 Theta_2_history(k_stage) = Theta_(2);
+                % %                     Theta_(2) = t2_from_trapz_w2(k_stage);
+                %                 if(abs(t2_from_trapz_w2(k_stage)) >= pi)
+                %                     Theta_(2) = -Theta_(2);
+                %                 end
+                %                 if(t2_from_trapz_w2 < 150)
+                %                     Theta_(2) = 360 - Theta_(2);
+                %                 end
+                %%
+                W_hist(k_stage, 1) = obj.quad_prog.Weighting_Matrix_1(4);
+                W_hist(k_stage, 2) = obj.quad_prog.Weighting_Matrix_2(4);
+                W_hist(k_stage, 3) = obj.quad_prog.Weighting_Matrix_3(4);
+                
             end
             %  toc
             %save history
-            obj.history = struct('T_ode45',T_ode45,'Force_Moment_log',Force_Moment_log,...
-                'X_ode45',X_ode45,'F_Th_Opt',F_Th_Opt,'Force_Moment_log_req',Force_Moment_log_req,'Theta_history',Theta_history);
+            obj.history = struct('T_ode45',T_ode45,'Force_Moment_log',Force_Moment_log,'Force_Moment_log_Body',Force_Moment_log_Body,...
+                'X_ode45',X_ode45,'F_Th_Opt',F_Th_Opt,'Force_Moment_log_req',Force_Moment_log_req,'Theta_history',Theta_history,'W_hist',W_hist);
             
         end
         
         function history = get_optimal_path_history(obj)
             %runs the simulator and outputs the history of states and
             %actions, useful for optimization purposes
-           if isempty(obj.history)
-               get_optimal_path(obj) % runs the simulator to get results, if not done previously
-           end
-           history = obj.history;
-           
+            if isempty(obj.history)
+                get_optimal_path(obj) % runs the simulator to get results, if not done previously
+            end
+            history = obj.history;
+            
         end
         
         function plot_optimal_path(obj)
-           if isempty(obj.history)
-               get_optimal_path(obj) % runs the simulator to get results, if not done previously
-           end
+            if isempty(obj.history)
+                get_optimal_path(obj) % runs the simulator to get results, if not done previously
+            end
             % plot results
             plot_results(obj)
-            % print response information (e.g. settling time & rise time) 
+            % print response information (e.g. settling time & rise time)
             x1_info = stepinfo(obj.history.X_ode45(:,1),obj.history.T_ode45,0)
         end
         
-        function [U_M, a_x, a_y, a_z] = to_Moments_Forces(obj,f_thruster,rotM_RSW2ECI, rotM_ECI2body)
+        function plot_optimal_path_export_article(obj)
+            %export plots in article format
+            if isempty(obj.history)
+                get_optimal_path(obj) % runs the simulator to get results, if not done previously
+            end
+            
+            if(obj.faulty_thruster_index == 9)
+               % plot results
+            plot_results_export_case_9(obj)
+            % print response information (e.g. settling time & rise time)
+            x1_info = stepinfo(obj.history.X_ode45(:,1),obj.history.T_ode45,0)
+            x2_info = stepinfo(obj.history.X_ode45(:,2),obj.history.T_ode45,0)
+            x3_info = stepinfo(obj.history.X_ode45(:,3),obj.history.T_ode45,0)
+                return
+            end
+            
+            if(obj.faulty_thruster_index == 4)
+               % plot results
+            plot_results_export_case_4(obj)
+            % print response information (e.g. settling time & rise time)
+            x1_info = stepinfo(obj.history.X_ode45(:,1),obj.history.T_ode45,0)
+            x2_info = stepinfo(obj.history.X_ode45(:,2),obj.history.T_ode45,0)
+            x3_info = stepinfo(obj.history.X_ode45(:,3),obj.history.T_ode45,0)
+                return
+            end
+            
+            % plot results
+            plot_results_export(obj)
+            % print response information (e.g. settling time & rise time)
+            x1_info = stepinfo(obj.history.X_ode45(:,1),obj.history.T_ode45,0)
+            x2_info = stepinfo(obj.history.X_ode45(:,2),obj.history.T_ode45,0)
+            x3_info = stepinfo(obj.history.X_ode45(:,3),obj.history.T_ode45,0)
+            
+        end
+        
+        function [U_M, a_x, a_y, a_z] = to_Moments_Forces(~,a_x_body, a_y_body, a_z_body, U_M_body,rotM_RSW2ECI, rotM_ECI2body)
+            
+            U_M = U_M_body;
+            accM = rotM_RSW2ECI\(rotM_ECI2body\[a_x_body a_y_body a_z_body]');
+            a_x = accM(1);
+            a_y = accM(2);
+            a_z = accM(3);
+        end
+        
+        function  [a_x_body, a_y_body, a_z_body, U_M_body] = to_Body_Moments_Forces(obj,f_thruster)
             f0 = f_thruster(1);
             f1 = f_thruster(2);
             f2 = f_thruster(3);
@@ -893,7 +967,6 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             U_M_x_body = (f4-f5-f10+f11)*obj.T_dist;
             U_M_body = [U_M_x_body; U_M_y_body; U_M_z_body];
             %             U_M = rotM_RSW2ECI\(rotM_ECI2body\U_M_body);
-            U_M = U_M_body;
             
             % Accelerations (expressed in body frame of reference)
             a_x_body = (f0+f1-f6-f7)/obj.Mass;
@@ -902,12 +975,8 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             % transform vectors
             %             rotM_RSW2ECI = RSW2ECI(obj, R0, V0);
             %             rotM_ECI2body = ECI2body(obj,q);
-            
-            accM = rotM_RSW2ECI\(rotM_ECI2body\[a_x_body a_y_body a_z_body]');
-            a_x = accM(1);
-            a_y = accM(2);
-            a_z = accM(3);
         end
+        
         
         function qrotMat = ECI2body(~, q)
             qrotMat = [1-2*(q(2)^2+q(3)^2), 2*(q(1)*q(2)+q(3)*q(4)), 2*(q(1)*q(3)-q(2)*q(4));...
@@ -947,12 +1016,12 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 
             catch
                 warning('one controller defined for all channels, do not use for fault case...\n')
-            F_controller = griddedInterpolant(controller.F_gI,...
-                single(controller.v_Fthruster(controller.F_U_Optimal_id)), obj.controller_InterpmodeF,'nearest');
-            
-            obj.F_controller_x = F_controller;
-            obj.F_controller_y = F_controller;
-            obj.F_controller_z = F_controller;
+                F_controller = griddedInterpolant(controller.F_gI,...
+                    single(controller.v_Fthruster(controller.F_U_Optimal_id)), obj.controller_InterpmodeF,'nearest');
+                
+                obj.F_controller_x = F_controller;
+                obj.F_controller_y = F_controller;
+                obj.F_controller_z = F_controller;
             end
             
             
@@ -977,13 +1046,13 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 
                 %Moments
                 M = zeros(3,1);
-%                 M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
-%                 M(2) = obj.M_controller_J2( 2*asin(Xin(8)) , Xin(12) ); %where X(11:13) represent rotational speeds
-%                 M(3) = obj.M_controller_J3( 2*asin(Xin(9)) , Xin(13) ); %where X(11:13) represent rotational speeds
+                %                 M(1) = obj.M_controller_J1( 2*asin(Xin(7)) , Xin(11) ); %where X(11:13) represent rotational speeds
+                %                 M(2) = obj.M_controller_J2( 2*asin(Xin(8)) , Xin(12) ); %where X(11:13) represent rotational speeds
+                %                 M(3) = obj.M_controller_J3( 2*asin(Xin(9)) , Xin(13) ); %where X(11:13) represent rotational speeds
                 %  w1,w2,w3 same as above
                 M(1) = obj.M_controller_J1( theta_(1) , t_dot(1) ); %where X(11:13) represent rotational speeds
                 M(2) = obj.M_controller_J2( theta_(2) , t_dot(2) ); %where X(11:13) represent rotational speeds
-                M(3) = obj.M_controller_J3( theta_(3) , t_dot(3) ); %where X(11:13) represent rotational speeds                
+                M(3) = obj.M_controller_J3( theta_(3) , t_dot(3) ); %where X(11:13) represent rotational speeds
                 
                 
             else
@@ -1008,7 +1077,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                     (Xin(3) - obj.controller_params.prev_error_a3) * -obj.controller_params.Kd_F / obj.h + ...
                     obj.controller_params.integral_a3 * -obj.controller_params.Ki_F;
                 
-                a = a/obj.Mass; 
+                a = a/obj.Mass;
                 
                 M = zeros(3,1);
                 M(1) = 2*asin(Xin(7)) * -obj.controller_params.Kp_M + ...
@@ -1020,14 +1089,14 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 M(3) = 2*asin(Xin(9)) * -obj.controller_params.Kp_M + ...
                     (2*asin(Xin(9)) - obj.controller_params.prev_error_M3) * -obj.controller_params.Kd_M / obj.h + ...
                     obj.controller_params.integral_M3 * -obj.controller_params.Ki_M;
-               %save errors
-               
-               obj.controller_params.prev_error_a1 = Xin(1);
-               obj.controller_params.prev_error_a2 = Xin(2);
-               obj.controller_params.prev_error_a3 = Xin(3);
-               obj.controller_params.prev_error_M1 = 2*asin(Xin(7));
-               obj.controller_params.prev_error_M2 = 2*asin(Xin(8));
-               obj.controller_params.prev_error_M3 = 2*asin(Xin(9));
+                %save errors
+                
+                obj.controller_params.prev_error_a1 = Xin(1);
+                obj.controller_params.prev_error_a2 = Xin(2);
+                obj.controller_params.prev_error_a3 = Xin(3);
+                obj.controller_params.prev_error_M1 = 2*asin(Xin(7));
+                obj.controller_params.prev_error_M2 = 2*asin(Xin(8));
+                obj.controller_params.prev_error_M3 = 2*asin(Xin(9));
                 
             end
             
@@ -1035,16 +1104,16 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
         end
         
         function [f0,f1,f6,f7] = QuadProg_allocation(~, Freq, Mreq, f_comb, Weighting_Matrix)
-        eF = sum(f_comb .* [1;1;-1;-1],1) - Freq; %repmat is implied (5-6x faster) as of MATLAB R2016b
-        eM = sum(f_comb .* [1;-1;-1;1],1) - Mreq;
-        all_evals = (eF.*eF) * Weighting_Matrix(1) + ...
-            (eM.*eM) * Weighting_Matrix(4);
-        
-        [best_evaluation, best_evaluation_id] = min(all_evals, [], 2); %#ok<ASGLU>
-        f0 = f_comb(1,best_evaluation_id);
-        f1 = f_comb(2,best_evaluation_id);
-        f6 = f_comb(3,best_evaluation_id);
-        f7 = f_comb(4,best_evaluation_id);
+            eF = sum(f_comb .* [1;1;-1;-1],1) - Freq; %repmat is implied (5-6x faster) as of MATLAB R2016b
+            eM = sum(f_comb .* [1;-1;-1;1],1) - Mreq;
+            all_evals = (eF.*eF) * Weighting_Matrix(1) + ...
+                (eM.*eM) * Weighting_Matrix(4);
+            
+            [best_evaluation, best_evaluation_id] = min(all_evals, [], 2); %#ok<ASGLU>
+            f0 = f_comb(1,best_evaluation_id);
+            f1 = f_comb(2,best_evaluation_id);
+            f6 = f_comb(3,best_evaluation_id);
+            f7 = f_comb(4,best_evaluation_id);
         end
         
         
@@ -1055,21 +1124,21 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             B = [1,1,-1,-1;...
                 1,-1,-1,1];
             all_evaluations = zeros(1,L);
-%             W = obj.active_set.Weighting_Matrix([1;4]);
+            %             W = obj.active_set.Weighting_Matrix([1;4]);
             
             for ii=1:L
                 u = [f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F;
                 e = (B*u - [Freq; Mreq]);
                 all_evaluations(ii) = e' * obj.quad_prog.Weighting_Matrix_F_default * e;
-%                 all_evaluations(1,ii) = sum((B*[f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F ...
-%                     - [Freq; Mreq]).^2 .* W);
+                %                 all_evaluations(1,ii) = sum((B*[f0_comb(ii);f1_comb(ii);f6_comb(ii);f7_comb(ii)] * obj.Thruster_max_F ...
+                %                     - [Freq; Mreq]).^2 .* W);
             end
             
             [best_evaluation, best_evaluation_id] = min(all_evaluations, [], 2); %#ok<ASGLU>
             
-%             if ( length(all_evaluations((all_evaluations - best_evaluation) == 0)) > 1)
-%                 keyboard;
-%             end
+            %             if ( length(all_evaluations((all_evaluations - best_evaluation) == 0)) > 1)
+            %                 keyboard;
+            %             end
             
             f0 = f0_comb(best_evaluation_id)*obj.Thruster_max_F;
             f1 = f1_comb(best_evaluation_id)*obj.Thruster_max_F;
@@ -1117,12 +1186,12 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
                 + obj.a_y;
             X_dot(6) = -mu_/norm_R_^3*x3 ...
                 + obj.a_z;
-%             %% CW equations instead
-%             X_dot(4) =  3*obj.WL^2*x1 + 2*obj.WL*v2;
-%             X_dot(5) =  -2*obj.WL*v1;
-%             X_dot(6) =  -obj.WL^2*x3;
+            %             %% CW equations instead
+            %             X_dot(4) =  3*obj.WL^2*x1 + 2*obj.WL*v2;
+            %             X_dot(5) =  -2*obj.WL*v1;
+            %             X_dot(6) =  -obj.WL^2*x3;
             
-
+            
             % attitude - q
             X_dot(7) = 0.5*(w3.*q2 -w2.*q3 +w1.*q4);
             X_dot(8) = 0.5*(-w3.*q1 +w1.*q3 +w2.*q4);
@@ -1150,7 +1219,7 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             X2 = X2';
         end
         
-          function X2 = ode_1(obj, x)
+        function X2 = ode_1(obj, x)
             % Taylor
             % h = dt;
             h_t = obj.h;
@@ -1158,265 +1227,71 @@ this.InertiaM = [inertia(1,1)  inertia(4,1)  inertia(5,1);...
             k1 = system_dynamics(obj, x);
             X2 = x + h_t*k1;
             X2 = X2';
-          end
-          
-          function plot_xy_plane(obj)
-              n_sampling = 30;
-              a = 0.3;
-              sep = 1.2*a; %seperation distance for sampling points
-              col_g = 0.1;
-              col_gh = 0.05; % bold heading
-              head_LineWidth = 1.3;
-             x = obj.history.X_ode45(:,1);
-             y = obj.history.X_ode45(:,2);
-             [~,theta2q2a,~] = quat2angle(obj.history.X_ode45(:,10:-1:7));
-             theta2_c = 2*asin(obj.history.X_ode45(:,8));
-%              theta2q2a = theta2q2a *180/pi;
-             
-             % sampling points:
-             % method 1:
-             i_sampling = round(linspace(1,length(x), n_sampling));
-             % method 2: 
-             i_sampling = 1;
-             x0 = x(1);
-             %p0 = x(1)^2 + y(1)^2;
-             for counter = 1:length(x)
-                 if(abs(x(counter) - x0) > sep)
-                     %                  if(x(counter)^2 + y(counter)^2 - p0 > sep)
-                     i_sampling(end+1) = counter;
-                     x0 = x(counter);
-                     %                      p0 = x(counter)^2 + y(counter)^2;
-                     
-                 end
-             end
-             
-             [b,ixorigin] = min(x.^2 + y.^2);
-             i_sampling(end) = ixorigin;
-%              if(i_sampling(end) ~= counter)
-%                  i_sampling(end + 1) = counter;
-%              end
-             
-             x_samples = x(i_sampling);
-             y_samples = y(i_sampling);
-             t_samples = theta2q2a(i_sampling);
-%              t_samples = theta2_c(i_sampling);
-            
-             
-             
-             Px_a = [a,a,-a,-a];
-             Py_a = [a,-a,-a,a];
-             figure
-             %plot path
-             plot(x,y,'-','Color', [col_g col_g col_g])
-             hold on
-             % drawing squares
-             for ii= 1:length(i_sampling)
-                  x_s = x_samples(ii);
-                 y_s = y_samples(ii);
-                 t2_s = t_samples(ii);
-                  Px = x_s + cos(t2_s).*Px_a -sin(t2_s).*Py_a;
-                 Py = y_s + sin(t2_s).*Px_a+cos(t2_s).*Py_a;
-                 %center of mass
-                 plot(x_s,y_s,'o','Color', [col_g col_g col_g])
-                 %three grey body lines
-                plot(Px([2,3,4,1]),Py([2,3,4,1]),'Color', [col_g col_g col_g])
-               
-                %heading line
-                plot(Px([1,2]), Py([1,2]),'Color', [col_gh col_gh col_gh], 'LineWidth', head_LineWidth)
-             end
-             axis equal
-             grid on
-             xlabel('x')
-             ylabel('y')
-             q = gca;
-             q.GridLineStyle = '--';
-             q.GridAlpha = 0.3;
-             
-             %draw arrows
-             x1 = x_samples(1);
-             x2 = x_samples(2);
-             
-             y1 = y_samples(1);
-             y2 = y_samples(2);
-%              [figx figy] = dsxy2figxy([x1 y1],[x2 y2]) ;
-%              arrowObj = annotation('arrow', [0.1 0.1], [0.5 0.5]);
-%              set(arrowObj, 'Units', 'centimeters');
-%              set(arrowObj, 'Position', [x1 y1 x2 y2]);
-%              annotation(gcf,'arrow', figx,figy)
-
-             drawArrow = @(x,y, varargin) quiver( x(1),y(1),x(2)-x(1),y(2)-y(1), varargin{:});    
-             hq = drawArrow([x1,x2],...
-                 [y1,y2], 'Color', [col_g col_g col_g], 'MaxHeadSize', 15);
-%              U = hq.UData;
-%              V = hq.VData;
-%              X = hq.XData;
-%              Y = hq.YData;
-%              LineLength = 0.08;
-%              headLength = 8;
-
-%              for ii = 1:length(X)
-%                  for ij = 1:length(X)
-%                      
-%                      headWidth = 5;
-%                      ah = annotation('arrow',...
-%                          'headStyle','cback1','HeadLength',headLength,'HeadWidth',headWidth);
-%                      set(ah,'parent',gca);
-%                      set(ah,'position',[X(ii,ij) Y(ii,ij) LineLength*U(ii,ij) LineLength*V(ii,ij)]);
-%                      
-%                  end
-%              end
-             
-             % or use annotation arrows
-%              
-%              annotation(gcf,'arrow', xf,yf)
-             %              headWidth = 5;
-%              ah = annotation('arrow',...
-%                  'headStyle','cback1','HeadLength',headLength,'HeadWidth',headWidth);
-%              set(ah,'parent',gca);
-%              set(ah,'position',[x_arrow y_arrow LineLength*U(ii,ij) LineLength*V(ii,ij)]);
-
+        end
         
-             
-%              for ii= 1:n_sampling
-%                  x_s = x_samples(ii);
-%                  y_s = y_samples(ii);
-%                  t2_s = theta2q2a_s(ii);
-%              polyin = polyshape(Px,Py);
-%              poly2(ii) = rotate(polyin,t2_s,[x_s y_s]);
-%              end
-%              plot(poly2)
-%              axis equal
-             
-          end
-          
-          function plot_yz_plane(obj)
-              n_sampling = 30;
-              a = 0.3;
-              sep = 1.2*a; %seperation distance for sampling points
-              col_g = 0.1;
-              col_gh = 0.05; % bold heading
-              head_LineWidth = 1.3;
-             x = obj.history.X_ode45(:,2);
-             y = obj.history.X_ode45(:,3);
-             [~,~,theta2q2a] = quat2angle(obj.history.X_ode45(:,10:-1:7));
-             theta2_c = 2*asin(obj.history.X_ode45(:,8));
-%              theta2q2a = theta2q2a *180/pi;
-             
-             % sampling points:
-             % method 1:
-             i_sampling = round(linspace(1,length(x), n_sampling));
-             % method 2: 
-             i_sampling = 1;
-             x0 = x(1);
-             %p0 = x(1)^2 + y(1)^2;
-             for counter = 1:length(x)
-                 if(abs(x(counter) - x0) > sep)
-                     %                  if(x(counter)^2 + y(counter)^2 - p0 > sep)
-                     i_sampling(end+1) = counter;
-                     x0 = x(counter);
-                     %                      p0 = x(counter)^2 + y(counter)^2;
-                     
-                 end
-             end
-             
-             [b,ixorigin] = min(x.^2 + y.^2);
-             i_sampling(end) = ixorigin;
-%              if(i_sampling(end) ~= counter)
-%                  i_sampling(end + 1) = counter;
-%              end
-             
-             x_samples = x(i_sampling);
-             y_samples = y(i_sampling);
-             t_samples = theta2q2a(i_sampling);
-%              t_samples = theta2_c(i_sampling);
+        function plot_xy_plane(obj)
+            n_sampling = 30;
+            a = 0.4;
+            sep = 1.4*a; %seperation distance for sampling points
+            sep_t = deg2rad(60);
+            col_g = 0.4;
+            col_gh = 0.05; % bold heading
+            head_LineWidth = 1.3;
+            body_LineWidth = 0.8;
+            tick_spacing_n = 6;
+            x = obj.history.X_ode45(:,1);
+            y = obj.history.X_ode45(:,2);
+            theta2q2a = obj.history.Theta_history(:,2);
             
-             
-             
-             Px_a = [a,a,-a,-a];
-             Py_a = [a,-a,-a,a];
-             figure
-             %plot path
-             plot(x,y,'-','Color', [col_g col_g col_g])
-             hold on
-             % drawing squares
-             for ii= 1:length(i_sampling)
-                  x_s = x_samples(ii);
-                 y_s = y_samples(ii);
-                 t2_s = t_samples(ii);
-                  Px = x_s + cos(t2_s).*Px_a -sin(t2_s).*Py_a;
-                 Py = y_s + sin(t2_s).*Px_a+cos(t2_s).*Py_a;
-                 %center of mass
-                 plot(x_s,y_s,'o','Color', [col_g col_g col_g])
-                 %three grey body lines
-                plot(Px([2,3,4,1]),Py([2,3,4,1]),'Color', [col_g col_g col_g])
-               
-                %heading line
-                plot(Px([1,2]), Py([1,2]),'Color', [col_gh col_gh col_gh], 'LineWidth', head_LineWidth)
-             end
-             axis equal
-             grid on
-             xlabel('x')
-             ylabel('y')
-             q = gca;
-             q.GridLineStyle = '--';
-             q.GridAlpha = 0.3;
-             
-             %draw arrows
-             x1 = x_samples(1);
-             x2 = x_samples(2);
-             
-             y1 = y_samples(1);
-             y2 = y_samples(2);
-%              [figx figy] = dsxy2figxy([x1 y1],[x2 y2]) ;
-%              arrowObj = annotation('arrow', [0.1 0.1], [0.5 0.5]);
-%              set(arrowObj, 'Units', 'centimeters');
-%              set(arrowObj, 'Position', [x1 y1 x2 y2]);
-%              annotation(gcf,'arrow', figx,figy)
-
-             drawArrow = @(x,y, varargin) quiver( x(1),y(1),x(2)-x(1),y(2)-y(1), varargin{:});    
-             hq = drawArrow([x1,x2],...
-                 [y1,y2], 'Color', [col_g col_g col_g], 'MaxHeadSize', 15);
-%              U = hq.UData;
-%              V = hq.VData;
-%              X = hq.XData;
-%              Y = hq.YData;
-%              LineLength = 0.08;
-%              headLength = 8;
-
-%              for ii = 1:length(X)
-%                  for ij = 1:length(X)
-%                      
-%                      headWidth = 5;
-%                      ah = annotation('arrow',...
-%                          'headStyle','cback1','HeadLength',headLength,'HeadWidth',headWidth);
-%                      set(ah,'parent',gca);
-%                      set(ah,'position',[X(ii,ij) Y(ii,ij) LineLength*U(ii,ij) LineLength*V(ii,ij)]);
-%                      
-%                  end
-%              end
-             
-             % or use annotation arrows
-%              
-%              annotation(gcf,'arrow', xf,yf)
-             %              headWidth = 5;
-%              ah = annotation('arrow',...
-%                  'headStyle','cback1','HeadLength',headLength,'HeadWidth',headWidth);
-%              set(ah,'parent',gca);
-%              set(ah,'position',[x_arrow y_arrow LineLength*U(ii,ij) LineLength*V(ii,ij)]);
-
+            plot_plane(obj,x,y,theta2q2a,sep_t,n_sampling,a,sep,col_g,col_gh,head_LineWidth,body_LineWidth,tick_spacing_n)
+            
+            xlabel('X_{rel} [m]')
+            ylabel('Y_{rel} [m]')
+        end
         
-             
-%              for ii= 1:n_sampling
-%                  x_s = x_samples(ii);
-%                  y_s = y_samples(ii);
-%                  t2_s = theta2q2a_s(ii);
-%              polyin = polyshape(Px,Py);
-%              poly2(ii) = rotate(polyin,t2_s,[x_s y_s]);
-%              end
-%              plot(poly2)
-%              axis equal
-             
-          end
+        function plot_yz_plane(obj)
+            n_sampling = 30;
+            a = 0.4;
+            sep = 1.4*a; %seperation distance for sampling points
+            sep_t = deg2rad(60);
+            col_g = 0.4;
+            col_gh = 0.05; % bold heading
+            head_LineWidth = 1.3;
+            body_LineWidth = 0.8;
+            tick_spacing_n = 6;
+            x = obj.history.X_ode45(:,2);
+            y = obj.history.X_ode45(:,3);
+            %             [~,~,theta2q2a] = quat2angle(obj.history.X_ode45(:,10:-1:7));
+            theta2q2a = obj.history.Theta_history(:,3);
+            plot_plane(obj,x,y,theta2q2a,sep_t,n_sampling,a,sep,col_g,col_gh,head_LineWidth,body_LineWidth,tick_spacing_n)
+            xlabel('Y_{rel} [m]')
+            ylabel('Z_{rel} [m]')
+        end
+        
+        
+        function plot_zx_plane(obj)
+            n_sampling = 30;
+            a = 0.4;
+            sep = 1.4*a; %seperation distance for sampling points
+            sep_t = deg2rad(180);
+            col_g = 0.4;
+            col_gh = 0.05; % bold heading
+            head_LineWidth = 1.3;
+            body_LineWidth = 0.8;
+            tick_spacing_n = 6;
+            
+            head_LineWidth = 1.3;
+            x = obj.history.X_ode45(:,3);
+            y = obj.history.X_ode45(:,1);
+            theta2q2a = obj.history.Theta_history(:,1);
+            
+            plot_plane(obj,x,y,theta2q2a,sep_t,n_sampling,a,sep,col_g,col_gh,head_LineWidth,body_LineWidth,tick_spacing_n)
+            
+            xlabel('Z_{rel} [m]')
+            ylabel('X_{rel} [m]')
+        end
+        
+        
     end
     
 end
